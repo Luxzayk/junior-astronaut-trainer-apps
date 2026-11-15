@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   AGUA_BAJA_MULT_AIRE,
+  BONUS_ANTENA_REFUGIO_ENERGIA,
+  COSTO_REFUGIARTE_SELLADO,
   DEMO_DURACION,
   DEMO_EVENTO_SEGUNDO,
   DEMO_JORNADA,
   DEMO_RECURSOS,
+  DESCANSO_REFUGIO_ESCUDO,
+  DESCANSO_REFUGIO_SEG,
   DRENAJE_BASE_POR_SEG,
   DURACION_JORNADA,
   EFECTOS_APAGON,
@@ -13,12 +17,14 @@ import {
   MULT_DRENAJE_POR_JORNADA,
   MULT_MODULO_DANADO,
   RECARGA_COMPLETA,
+  RECOMPENSA_PURIFICAR_AIRE,
   REFUERZO_CONTROL_MISION,
   SEGUNDO_EVENTO_APAGON,
   SEGUNDO_EVENTO_CLIMA,
   SEGUNDO_EVENTO_FUGA,
   SEGUNDO_EVENTO_TORMENTA_GRANDE,
   VENTANA_FUGA,
+  VENTANA_FUGA_BONUS_INSPECCION,
 } from '../src/game/balance';
 import {
   evaluarCierreJornada,
@@ -26,6 +32,7 @@ import {
   obtenerRecursoDeEstacion,
 } from '../src/game/closing';
 import {
+  calcularEfectosRefugiarte,
   obtenerEventoJornada3,
   obtenerEventoJornada5,
   obtenerOpcionesEventoClima,
@@ -333,5 +340,87 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
     // En demo, siguienteJornada no avanza a J4
     gameState.siguienteJornada();
     expect(gameState.getSnapshot().jornada).toBe(DEMO_JORNADA);
+  });
+
+  it('reduce el coste de Refugiarte con refugio sellado y antena sintonizada', () => {
+    expect(calcularEfectosRefugiarte('FULGURACION').energia).toBe(
+      EFECTOS_EVENTO_FLR.refugiarte.energia,
+    );
+    expect(
+      calcularEfectosRefugiarte('FULGURACION', { refugioSellado: true }).energia,
+    ).toBe(COSTO_REFUGIARTE_SELLADO);
+    expect(
+      calcularEfectosRefugiarte('FULGURACION', {
+        refugioSellado: true,
+        antenaSintonizada: true,
+      }).energia,
+    ).toBe(COSTO_REFUGIARTE_SELLADO + BONUS_ANTENA_REFUGIO_ENERGIA);
+
+    gameState.irAJornadaDebug(3);
+    expect(gameState.sellarRefugio()).toBe(true);
+    expect(gameState.sintonizarAntena()).toBe(true);
+    gameState.forzarEventoClimaDebug();
+    const energiaAntes = gameState.getSnapshot().energia;
+    gameState.resolverEventoClima('refugiarte', 'FULGURACION');
+    expect(gameState.getSnapshot().energia).toBeCloseTo(
+      energiaAntes + COSTO_REFUGIARTE_SELLADO + BONUS_ANTENA_REFUGIO_ENERGIA,
+      5,
+    );
+  });
+
+  it('amplía la ventana de fuga si el tanque fue inspeccionado', () => {
+    gameState.irAJornadaDebug(2);
+    expect(gameState.inspeccionarTanque()).toBe(true);
+    gameState.tick(SEGUNDO_EVENTO_FUGA);
+    const enFuga = gameState.getSnapshot();
+    expect(enFuga.misionUrgente?.tiempoRestante).toBeCloseTo(
+      VENTANA_FUGA + VENTANA_FUGA_BONUS_INSPECCION,
+      5,
+    );
+  });
+
+  it('recupera escudo con descanso táctico en el refugio', () => {
+    gameState.irAJornadaDebug(1);
+    const antes = gameState.getSnapshot();
+    expect(gameState.descansarEnRefugio()).toBe(true);
+    const despues = gameState.getSnapshot();
+    expect(despues.escudo).toBeCloseTo(
+      Math.min(100, antes.escudo + DESCANSO_REFUGIO_ESCUDO),
+      5,
+    );
+    expect(despues.segundos).toBeCloseTo(antes.segundos + DESCANSO_REFUGIO_SEG, 5);
+    expect(despues.descansoRefugioUsado).toBe(true);
+    expect(gameState.descansarEnRefugio()).toBe(false);
+  });
+
+  it('completa j4_tanque con +8 aire sin elección y no bloquea cierre completo', () => {
+    gameState.irAJornadaDebug(4);
+    const aireAntes = gameState.getSnapshot().aire;
+    gameState.iniciarMinijuego('tanque', 'j4_tanque', 'valvulas', {
+      pasos: 4,
+      tiempoLimite: 30,
+    });
+    gameState.finalizarMinijuego('exito', 'tanque', 'j4_tanque');
+    const trasPurificar = gameState.getSnapshot();
+    expect(trasPurificar.estado).toBe('jugando');
+    expect(trasPurificar.misionesHechas).toContain('j4_tanque');
+    expect(trasPurificar.aire).toBeCloseTo(
+      Math.min(100, aireAntes + RECOMPENSA_PURIFICAR_AIRE),
+      5,
+    );
+
+    const cierreSinOpcional = evaluarCierreJornada({
+      jornada: 4,
+      aire: 70,
+      energia: 60,
+      escudo: 80,
+      misionesHechas: ['j4_energia', 'j4_invernadero'],
+      gastoJornada: { aire: 10, energia: 10, escudo: 10 },
+      incompletasSeguidasActual: 0,
+      refuerzoControlUsadoActual: false,
+      moduloDanadoActual: null,
+    });
+    expect(cierreSinOpcional.resultado.tipo).toBe('completa');
+    expect(cierreSinOpcional.resultado.misionesTotal).toBe(2);
   });
 });

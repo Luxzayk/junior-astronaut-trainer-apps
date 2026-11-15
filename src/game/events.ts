@@ -10,8 +10,17 @@ import {
 } from '../data/eventosLoader';
 import { getAjustes } from './settings';
 import { t } from '../i18n';
-import { EFECTOS_APAGON } from './balance';
+import {
+  BONUS_ANTENA_REFUGIO_ENERGIA,
+  COSTO_REFUGIARTE_SELLADO,
+  EFECTOS_APAGON,
+} from './balance';
 import type { MapaDeltasRecursos } from './missions';
+
+export interface ModificadoresRefugio {
+  refugioSellado?: boolean;
+  antenaSintonizada?: boolean;
+}
 
 export interface DefinicionEventoClima {
   id: string;
@@ -224,8 +233,25 @@ export function obtenerTextoFuenteEvento(
   return t('eventoClima.fuentePorVerificar');
 }
 
+export function calcularEfectosRefugiarte(
+  tipoOpciones: TipoOpcionesClima = 'FULGURACION',
+  mods: ModificadoresRefugio = {},
+): MapaDeltasRecursos {
+  const nivel: NivelEvento =
+    tipoOpciones === 'TORMENTA_GRANDE' ? 'fuerte' : 'media';
+  const tabla = getCostosPorNivel(nivel);
+  let energia = mods.refugioSellado
+    ? COSTO_REFUGIARTE_SELLADO
+    : (tabla.refugiarte.energia ?? 0);
+  if (mods.antenaSintonizada) {
+    energia = Math.min(0, energia + BONUS_ANTENA_REFUGIO_ENERGIA);
+  }
+  return { energia };
+}
+
 export function obtenerOpcionesEventoClima(
   tipoOpciones: TipoOpcionesClima = 'FULGURACION',
+  mods: ModificadoresRefugio = {},
 ): readonly OpcionEventoClima[] {
   const nivel: NivelEvento =
     tipoOpciones === 'TORMENTA_GRANDE' ? 'fuerte' : 'media';
@@ -235,7 +261,7 @@ export function obtenerOpcionesEventoClima(
       id: 'refugiarte',
       titulo: t('eventoClima.opcionRefugiarteTitulo'),
       descripcion: t('eventoClima.opcionRefugiarteDesc'),
-      efectos: { ...tabla.refugiarte },
+      efectos: calcularEfectosRefugiarte(tipoOpciones, mods),
     },
     {
       id: 'seguirTrabajando',
@@ -253,7 +279,11 @@ export function obtenerOpcionesEventoFLR(): readonly OpcionEventoClima[] {
 export function obtenerEfectosOpcionEventoClima(
   opcionId: IdOpcionEventoFLR,
   tipoOpciones: TipoOpcionesClima = 'FULGURACION',
+  mods: ModificadoresRefugio = {},
 ): MapaDeltasRecursos {
+  if (opcionId === 'refugiarte') {
+    return calcularEfectosRefugiarte(tipoOpciones, mods);
+  }
   const nivel: NivelEvento =
     tipoOpciones === 'TORMENTA_GRANDE' ? 'fuerte' : 'media';
   const tabla = getCostosPorNivel(nivel);

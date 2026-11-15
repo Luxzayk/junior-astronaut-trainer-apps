@@ -93,7 +93,7 @@ export function evaluarCierreJornada(
   params: ParametrosCierreJornada,
 ): EvaluacionCierreOutput {
   const misiones = obtenerMisionesDeJornada(params.jornada).filter(
-    (m) => m.urgente === undefined,
+    (m) => m.urgente === undefined && m.obligatoria,
   );
   const misionesTotal = misiones.length;
   let misionesHechasCount = 0;

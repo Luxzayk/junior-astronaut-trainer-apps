@@ -16,10 +16,14 @@ import {
   DEMO_EVENTO_SEGUNDO,
   DEMO_JORNADA,
   DEMO_RECURSOS,
+  DESCANSO_REFUGIO_ESCUDO,
+  DESCANSO_REFUGIO_SEG,
   DRENAJE_BASE_POR_SEG,
   DURACION_JORNADA,
   generarRecursosIniciales,
   MAX_JORNADAS,
+  RECOMPENSA_PURIFICAR_AIRE,
+  VENTANA_FUGA_BONUS_INSPECCION,
 } from './balance';
 import { obtenerMultiplicadorJornada } from './clock';
 import {
@@ -111,6 +115,10 @@ export interface GameState {
   eventoClimaDisparado: boolean;
   eventoDisparadoEnJornada: boolean;
   eventoActivo: string | null;
+  antenaSintonizada: boolean;
+  refugioSellado: boolean;
+  descansoRefugioUsado: boolean;
+  tanqueInspeccionado: boolean;
   bitacora: EntradaBitacora[];
   resultadosJornadas: ResumenJornadaEstado[];
 }
@@ -322,6 +330,10 @@ export class GameStateManager {
         eventoClimaDisparado: false,
         eventoDisparadoEnJornada: false,
         eventoActivo: null,
+        antenaSintonizada: false,
+        refugioSellado: false,
+        descansoRefugioUsado: false,
+        tanqueInspeccionado: false,
         bitacora: [],
         resultadosJornadas: [],
       };
@@ -352,9 +364,20 @@ export class GameStateManager {
       eventoClimaDisparado: false,
       eventoDisparadoEnJornada: false,
       eventoActivo: null,
+      antenaSintonizada: false,
+      refugioSellado: false,
+      descansoRefugioUsado: false,
+      tanqueInspeccionado: false,
       bitacora: [],
       resultadosJornadas: [],
     };
+  }
+
+  private resetearFlagsAccionesJornada(): void {
+    this.state.antenaSintonizada = false;
+    this.state.refugioSellado = false;
+    this.state.descansoRefugioUsado = false;
+    this.state.tanqueInspeccionado = false;
   }
 
   private capturarInicioJornada(): SnapshotInicioJornada {
@@ -497,6 +520,7 @@ export class GameStateManager {
     this.state.eventoClimaDisparado = this.inicioJornada.eventoClimaDisparado;
     this.state.eventoDisparadoEnJornada = false;
     this.state.eventoActivo = null;
+    this.resetearFlagsAccionesJornada();
     this.state.gastoJornada = crearGastoVacio();
     this.state.ultimoCierre = null;
     this.state.bitacora = clonarBitacora(this.inicioJornada.bitacora);
@@ -721,20 +745,24 @@ export class GameStateManager {
     }
 
     if (eventoDef.tipo === 'fuga') {
+      const ventana =
+        eventoDef.ventana +
+        (this.state.tanqueInspeccionado ? VENTANA_FUGA_BONUS_INSPECCION : 0);
       const misionFuga = crearMisionFugaUrgente(
         this.state.jornada,
         eventoDef.pasos,
         eventoDef.tiempoLimite,
-        eventoDef.ventana,
+        ventana,
       );
       this.state.misionUrgente = {
         mision: misionFuga,
-        tiempoRestante: eventoDef.ventana,
+        tiempoRestante: ventana,
       };
       this.state.eventoActivo = 'fuga';
       this.registrarEnBitacora({
         tipo: 'fuga',
         id: 'fuga_inicio',
+        nota: this.state.tanqueInspeccionado ? 'inspeccion' : undefined,
       });
       this.emit('fuga:inicio', {});
       this.emit('estado:cambio', { estado: this.state.estado });
@@ -975,6 +1003,14 @@ export class GameStateManager {
 
       if (misionId) {
         this.completarMision(misionId);
+        if (misionId === 'j4_tanque') {
+          this.aplicarDeltasRecursos({ aire: RECOMPENSA_PURIFICAR_AIRE });
+          this.registrarEnBitacora({
+            tipo: 'interaccion',
+            id: 'purificar_agua',
+            deltas: { aire: RECOMPENSA_PURIFICAR_AIRE },
+          });
+        }
       }
     } else if (resultado === 'fallo') {
       this.emit('mision:fallo', { estacionId, misionId });
@@ -1086,7 +1122,10 @@ export class GameStateManager {
     if (this.state.estado !== 'evento') {
       return;
     }
-    const efectos = obtenerEfectosOpcionEventoClima(opcionId, tipoOpciones);
+    const efectos = obtenerEfectosOpcionEventoClima(opcionId, tipoOpciones, {
+      refugioSellado: this.state.refugioSellado,
+      antenaSintonizada: this.state.antenaSintonizada,
+    });
     this.registrarEnBitacora({
       tipo: 'evento',
       id: opcionId,
@@ -1202,6 +1241,7 @@ export class GameStateManager {
     this.state.eventoDisparadoEnJornada = false;
     this.state.eventoClimaDisparado = false;
     this.state.eventoActivo = null;
+    this.resetearFlagsAccionesJornada();
     this.state.gastoJornada = crearGastoVacio();
     this.state.ultimoCierre = null;
     this.inicioJornada = this.capturarInicioJornada();
@@ -1212,6 +1252,91 @@ export class GameStateManager {
     });
     this.emit('estado:cambio', { estado: this.state.estado });
     this.emit('jornada:nueva', { jornada: this.state.jornada });
+  }
+
+  public sintonizarAntena(): boolean {
+    if (this.state.estado !== 'jugando' || this.state.pausado) {
+      return false;
+    }
+    if (this.state.antenaSintonizada) {
+      return false;
+    }
+    this.state.antenaSintonizada = true;
+    this.registrarEnBitacora({
+      tipo: 'interaccion',
+      id: 'antena',
+    });
+    this.emit('estado:cambio', { estado: this.state.estado });
+    return true;
+  }
+
+  public sellarRefugio(): boolean {
+    if (this.state.estado !== 'jugando' || this.state.pausado) {
+      return false;
+    }
+    if (this.state.refugioSellado) {
+      return false;
+    }
+    const jornada = this.state.jornada;
+    if (jornada !== 3 && jornada !== 5) {
+      return false;
+    }
+    if (this.state.eventoDisparadoEnJornada) {
+      return false;
+    }
+    this.state.refugioSellado = true;
+    this.registrarEnBitacora({
+      tipo: 'interaccion',
+      id: 'sellar',
+    });
+    this.emit('estado:cambio', { estado: this.state.estado });
+    return true;
+  }
+
+  public descansarEnRefugio(): boolean {
+    if (this.state.estado !== 'jugando' || this.state.pausado) {
+      return false;
+    }
+    if (this.state.descansoRefugioUsado || this.state.eventoActivo) {
+      return false;
+    }
+    const duracion = this.obtenerDuracionJornadaActual();
+    this.state.descansoRefugioUsado = true;
+    this.aplicarDeltasRecursos({ escudo: DESCANSO_REFUGIO_ESCUDO });
+    this.state.segundos = Math.min(
+      duracion,
+      this.state.segundos + DESCANSO_REFUGIO_SEG,
+    );
+    this.registrarEnBitacora({
+      tipo: 'interaccion',
+      id: 'descanso',
+      deltas: { escudo: DESCANSO_REFUGIO_ESCUDO },
+    });
+    this.emit('jornada:tick', {
+      jornada: this.state.jornada,
+      segundos: this.state.segundos,
+    });
+    this.emit('estado:cambio', { estado: this.state.estado });
+    if (this.state.segundos >= duracion) {
+      this.cerrarJornadaActual();
+    }
+    return true;
+  }
+
+  public inspeccionarTanque(): boolean {
+    if (this.state.estado !== 'jugando' || this.state.pausado) {
+      return false;
+    }
+    if (this.state.tanqueInspeccionado || this.state.misionUrgente) {
+      return false;
+    }
+    this.state.tanqueInspeccionado = true;
+    this.registrarEnBitacora({
+      tipo: 'interaccion',
+      id: 'inspeccion_tanque',
+    });
+    this.emit('estado:cambio', { estado: this.state.estado });
+    return true;
   }
 
   public setPausa(pausado: boolean): void {
@@ -1274,6 +1399,7 @@ export class GameStateManager {
     this.state.eventoDisparadoEnJornada = false;
     this.state.eventoClimaDisparado = false;
     this.state.eventoActivo = null;
+    this.resetearFlagsAccionesJornada();
     this.state.gastoJornada = crearGastoVacio();
     this.state.ultimoCierre = null;
     this.inicioJornada = this.capturarInicioJornada();

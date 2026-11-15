@@ -17,6 +17,8 @@ import {
 import {
   DEBUG_DELTA_RECURSO,
   DEBUG_VELOCIDADES,
+  DESCANSO_REFUGIO_ESCUDO,
+  DESCANSO_REFUGIO_SEG,
   DURACION_AVISO_ESTACION_MS,
   DURACION_BANNER_APAGON_MS,
   RADIO_INTERACCION,
@@ -68,6 +70,10 @@ import {
   dibujarIconoMisionActiva,
   dibujarIconoMisionLista,
 } from '../ui/icons';
+import {
+  crearModalLobby,
+  type ControlModalLobby,
+} from '../ui/lobbyModal';
 import { desregistrarObjetivoUI, registrarObjetivoUI } from '../ui/targets';
 import {
   COLORES,
@@ -140,6 +146,7 @@ export class BaseScene extends Phaser.Scene {
   private efectosBase: ControladorEfectosBase | null = null;
   private distanciaCaminataFrame = 0;
   private frameAstronautaIdx = 0;
+  private modalLobby: ControlModalLobby | null = null;
 
   private desuscripciones: Array<() => void> = [];
 
@@ -175,6 +182,9 @@ export class BaseScene extends Phaser.Scene {
     this.crearBannerFuga();
     this.crearFlechaTanque();
     this.crearAvisoEstacion();
+    this.modalLobby = crearModalLobby(this, {
+      alAviso: (mensaje) => this.mostrarAvisoEstacion(mensaje, 3200),
+    });
     this.efectosBase = new ControladorEfectosBase(this, 45);
     this.configurarEntrada();
     this.configurarDebug();
@@ -1660,7 +1670,12 @@ export class BaseScene extends Phaser.Scene {
 
   private activarEstacionCercana(): void {
     const snap = gameState.getSnapshot();
-    if (snap.estado !== 'jugando' || snap.pausado || !this.estacionCercana) {
+    if (
+      snap.estado !== 'jugando' ||
+      snap.pausado ||
+      !this.estacionCercana ||
+      this.modalLobby?.estaAbierto()
+    ) {
       return;
     }
     audioEngine.reproducir('clic');
@@ -1688,6 +1703,21 @@ export class BaseScene extends Phaser.Scene {
     }
 
     const nombreEstacion = obtenerNombreEstacion(estacion.id);
+    if (estacion.id === 'lobby') {
+      this.modalLobby?.abrir();
+      return;
+    }
+
+    if (estacion.id === 'refugio') {
+      this.activarRefugio(snap.jornada, snap.refugioSellado, snap.descansoRefugioUsado, snap.eventoDisparadoEnJornada, snap.eventoActivo);
+      return;
+    }
+
+    if (estacion.id === 'tanque') {
+      this.activarTanque(snap.tanqueInspeccionado, snap.jornada);
+      return;
+    }
+
     if (
       estacion.id === 'energia' ||
       estacion.id === 'invernadero' ||
@@ -1709,6 +1739,79 @@ export class BaseScene extends Phaser.Scene {
     }
 
     this.mostrarAvisoEstacion(t('interaccion.proximamente', { nombreEstacion }));
+  }
+
+  private activarRefugio(
+    jornada: number,
+    refugioSellado: boolean,
+    descansoUsado: boolean,
+    eventoDisparado: boolean,
+    eventoActivo: string | null,
+  ): void {
+    const puedeSellar =
+      (jornada === 3 || jornada === 5) && !eventoDisparado && !refugioSellado;
+    if (puedeSellar) {
+      if (gameState.sellarRefugio()) {
+        this.mostrarAvisoEstacion(t('interaccion.refugioSellado'), 2800);
+      } else {
+        this.mostrarAvisoEstacion(t('interaccion.refugioYaSellado'));
+      }
+      return;
+    }
+
+    if (!descansoUsado && !eventoActivo) {
+      if (gameState.descansarEnRefugio()) {
+        this.mostrarAvisoEstacion(
+          t('interaccion.refugioDescanso', {
+            escudo: DESCANSO_REFUGIO_ESCUDO,
+            segundos: DESCANSO_REFUGIO_SEG,
+          }),
+          2800,
+        );
+      } else {
+        this.mostrarAvisoEstacion(t('interaccion.refugioDescansoUsado'));
+      }
+      return;
+    }
+
+    if (refugioSellado) {
+      this.mostrarAvisoEstacion(t('interaccion.refugioDescansoUsado'));
+      return;
+    }
+    if (jornada === 3 || jornada === 5) {
+      this.mostrarAvisoEstacion(t('interaccion.refugioYaSellado'));
+      return;
+    }
+    this.mostrarAvisoEstacion(t('interaccion.refugioNoClima'));
+  }
+
+  private activarTanque(tanqueInspeccionado: boolean, jornada: number): void {
+    if (!tanqueInspeccionado && jornada === 2) {
+      if (gameState.inspeccionarTanque()) {
+        this.mostrarAvisoEstacion(t('interaccion.tanqueInspeccionado'), 2800);
+      } else {
+        this.mostrarAvisoEstacion(t('interaccion.tanqueYaInspeccionado'));
+      }
+      return;
+    }
+
+    const misionesTanque = obtenerMisionesDeJornada(jornada).filter(
+      (m) => m.estacionId === 'tanque',
+    );
+    if (misionesTanque.length > 0) {
+      this.mostrarAvisoEstacion(
+        t('interaccion.misionYaLista', {
+          nombreEstacion: obtenerNombreEstacion('tanque'),
+        }),
+      );
+      return;
+    }
+
+    if (tanqueInspeccionado) {
+      this.mostrarAvisoEstacion(t('interaccion.tanqueYaInspeccionado'));
+      return;
+    }
+    this.mostrarAvisoEstacion(t('interaccion.tanqueSinAccion'));
   }
 
   private mostrarAvisoEstacion(
@@ -1750,6 +1853,8 @@ export class BaseScene extends Phaser.Scene {
     this.efectosBase?.destroy();
     this.efectosBase = null;
     this.fondoEstrellas = null;
+    this.modalLobby?.destroy();
+    this.modalLobby = null;
 
     if (this.timerAviso) {
       this.timerAviso.remove(false);

@@ -5,7 +5,8 @@ export type TipoRegistroBitacora =
   | 'evento'
   | 'apagon'
   | 'fuga'
-  | 'intento';
+  | 'intento'
+  | 'interaccion';
 
 export interface DeltasBitacora {
   aire: number;

@@ -274,7 +274,11 @@ export class EventScene extends Phaser.Scene {
       luniEvento.container,
     ]);
 
-    const opciones = obtenerOpcionesEventoClima(tipoOpciones);
+    const snapClima = gameState.getSnapshot();
+    const opciones = obtenerOpcionesEventoClima(tipoOpciones, {
+      refugioSellado: snapClima.refugioSellado,
+      antenaSintonizada: snapClima.antenaSintonizada,
+    });
     const tAncho = EVENTO_METRICAS.tarjetaAncho;
     const tAlto = EVENTO_METRICAS.tarjetaAlto;
     const sep = EVENTO_METRICAS.tarjetaSeparacion;

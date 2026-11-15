@@ -117,12 +117,13 @@ function elegirOpcionClima(
   tipoOpciones: TipoOpcionesClima,
   actual: MinimosRecursos,
   hayMisionesPendientes: boolean,
+  mods: { refugioSellado?: boolean; antenaSintonizada?: boolean } = {},
 ): IdOpcionEventoFLR {
   if (politica === 'pasivo') {
     return 'refugiarte';
   }
 
-  const opciones = obtenerOpcionesEventoClima(tipoOpciones);
+  const opciones = obtenerOpcionesEventoClima(tipoOpciones, mods);
   if (politica === 'mediocre') {
     return 'seguirTrabajando';
   }
@@ -258,14 +259,18 @@ export function simularSemana(
     jornadaAlcanzada = snapInicio.jornada;
 
     const todasNormales = obtenerMisionesDeJornada(snapInicio.jornada);
+    const misionesObligatorias = todasNormales.filter((m) => m.obligatoria);
     const misionesObjetivo =
       politica === 'perfecto'
-        ? todasNormales
+        ? misionesObligatorias
         : politica === 'pasivo'
           ? []
-          : todasNormales.length === 1
-            ? todasNormales.slice(0, 1)
-            : todasNormales.slice(0, Math.floor(todasNormales.length / 2));
+          : misionesObligatorias.length === 1
+            ? misionesObligatorias.slice(0, 1)
+            : misionesObligatorias.slice(
+                0,
+                Math.floor(misionesObligatorias.length / 2),
+              );
 
     let indiceMision = 0;
     let progresoMision = 0;
@@ -299,7 +304,7 @@ export function simularSemana(
       }
 
       if (snap.estado === 'evento') {
-        const hayPendientes = todasNormales.some(
+        const hayPendientes = misionesObligatorias.some(
           (m) =>
             obtenerEstadoMision(
               m.id,
@@ -312,6 +317,10 @@ export function simularSemana(
           eventoClimaOpciones,
           { aire: snap.aire, energia: snap.energia, escudo: snap.escudo },
           hayPendientes,
+          {
+            refugioSellado: snap.refugioSellado,
+            antenaSintonizada: snap.antenaSintonizada,
+          },
         );
         motor.resolverEventoClima(opClima, eventoClimaOpciones);
         registrarMinimos();
@@ -319,7 +328,7 @@ export function simularSemana(
       }
 
       if (snap.estado === 'apagon') {
-        const tieneInvPendiente = todasNormales.some(
+        const tieneInvPendiente = misionesObligatorias.some(
           (m) =>
             m.estacionId === 'invernadero' &&
             obtenerEstadoMision(
@@ -351,7 +360,7 @@ export function simularSemana(
       }
 
       if (snap.estado === 'evento') {
-        const hayPendientes = todasNormales.some(
+        const hayPendientes = misionesObligatorias.some(
           (m) =>
             obtenerEstadoMision(
               m.id,
@@ -364,12 +373,16 @@ export function simularSemana(
           eventoClimaOpciones,
           { aire: snap.aire, energia: snap.energia, escudo: snap.escudo },
           hayPendientes,
+          {
+            refugioSellado: snap.refugioSellado,
+            antenaSintonizada: snap.antenaSintonizada,
+          },
         );
         motor.resolverEventoClima(opClima, eventoClimaOpciones);
         registrarMinimos();
         snap = motor.getSnapshot();
       } else if (snap.estado === 'apagon') {
-        const tieneInvPendiente = todasNormales.some(
+        const tieneInvPendiente = misionesObligatorias.some(
           (m) =>
             m.estacionId === 'invernadero' &&
             obtenerEstadoMision(

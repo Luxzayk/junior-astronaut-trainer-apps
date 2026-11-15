@@ -161,7 +161,16 @@ export const ELECCIONES = {
 
 export const SEGUNDO_EVENTO_FUGA = 45; // balance de juego, no datos de NASA
 export const VENTANA_FUGA = 35; // balance de juego, no datos de NASA
+export const VENTANA_FUGA_BONUS_INSPECCION = 8; // balance de juego, no datos de NASA
 export const AGUA_BAJA_MULT_AIRE = 1.15; // balance de juego, no datos de NASA
+
+// --- Acciones de Lobby / Refugio / Tanque ---
+// balance de juego, no datos de NASA.
+export const COSTO_REFUGIARTE_SELLADO = -6;
+export const BONUS_ANTENA_REFUGIO_ENERGIA = 3;
+export const DESCANSO_REFUGIO_SEG = 8;
+export const DESCANSO_REFUGIO_ESCUDO = 4;
+export const RECOMPENSA_PURIFICAR_AIRE = 8;
 
 export const SEGUNDO_EVENTO_APAGON = 50; // balance de juego, no datos de NASA
 export const DURACION_BANNER_APAGON_MS = 3000; // balance de juego, no datos de NASA

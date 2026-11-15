@@ -162,7 +162,9 @@ export function contarMisionesJornada(
   jornada: number,
   misionesHechas: readonly string[],
 ): { completadas: number; total: number } {
-  const misiones = obtenerMisionesDeJornada(jornada);
+  const misiones = obtenerMisionesDeJornada(jornada).filter(
+    (m) => m.obligatoria,
+  );
   let completadas = 0;
   for (const mision of misiones) {
     if (estaMisionCompletada(mision.id, misionesHechas)) {

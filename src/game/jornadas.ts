@@ -267,6 +267,25 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         descripcionClave: 'misiones.j4InvernaderoDesc',
         obligatoria: true,
       },
+      {
+        id: 'j4_tanque',
+        jornada: 4,
+        estacionId: 'tanque',
+        minijuego: 'valvulas',
+        pasos: 4,
+        tiempoLimite: 30,
+        eleccion: null,
+        sinEleccion: true,
+        get titulo(): string {
+          return t('misiones.j4TanqueTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j4TanqueDesc');
+        },
+        tituloClave: 'misiones.j4TanqueTitulo',
+        descripcionClave: 'misiones.j4TanqueDesc',
+        obligatoria: false,
+      },
     ],
     evento: {
       tipo: 'apagon',

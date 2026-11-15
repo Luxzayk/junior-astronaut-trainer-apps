@@ -39,7 +39,10 @@ describe('Sistema de misiones de 5 jornadas y elecciones por estación', () => {
     expect(obtenerMisionesDeJornada(4).map((m) => m.minijuego)).toEqual([
       'nodos',
       'valvulas',
+      'valvulas',
     ]);
+    expect(obtenerMisionesDeJornada(4).map((m) => m.id)).toContain('j4_tanque');
+    expect(contarMisionesJornada(4, [])).toEqual({ completadas: 0, total: 2 });
     expect(obtenerMisionesDeJornada(5).map((m) => m.minijuego)).toEqual([
       'valvulas',
       'escudo',
