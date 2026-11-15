@@ -40,7 +40,7 @@ export const SEMANAS: readonly DefinicionSemana[] = [
       es: 'Escenario base para entrenar operaciones del puesto lunar.',
       en: 'Baseline week to train lunar outpost operations.',
     },
-    ventana: { inicio: '', fin: '' },
+    ventana: { inicio: '2026-09-01', fin: '2026-09-07' },
     eventos: {
       j3: 'semana-1-j3',
       j5: 'semana-1-j5',
@@ -56,7 +56,7 @@ export const SEMANAS: readonly DefinicionSemana[] = [
       es: 'Semana centrada en alertas de fulguración y control de fugas.',
       en: 'Week focused on solar flare alerts and leak response.',
     },
-    ventana: { inicio: '', fin: '' },
+    ventana: { inicio: '2026-07-27', fin: '2026-08-02' },
     eventos: {
       j3: 'semana-2-j3',
       j5: 'semana-2-j5',
@@ -72,7 +72,7 @@ export const SEMANAS: readonly DefinicionSemana[] = [
       es: 'Semana exigente para probar escudos y energía al máximo.',
       en: 'Challenging week to test shields and power reserves.',
     },
-    ventana: { inicio: '', fin: '' },
+    ventana: { inicio: '2026-08-17', fin: '2026-08-23' },
     eventos: {
       j3: 'semana-3-j3',
       j5: 'semana-3-j5',

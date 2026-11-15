@@ -4,83 +4,101 @@
     "semana": "semana-1",
     "jornada": 3,
     "tipo": "FLR",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-09-05T15:04:00Z",
+    "clase": "M1.0",
     "nivel": "media",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/48550/2/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "El 5 de septiembre de 2026 el Sol lanzó una fulguración M1.0. Decide si proteges la base o sigues trabajando.",
+      "en": "On Sept 5, 2026, the Sun released an M1.0 solar flare. Decide whether to shelter the base or keep working."
+    },
+    "verificado": true
   },
   {
     "id": "semana-1-j5",
     "semana": "semana-1",
     "jornada": 5,
     "tipo": "SEP",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-09-05T15:45:00Z",
+    "clase": "SEP GOES >100 MeV",
     "nivel": "fuerte",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/48551/1/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "Tras la fulguración del 5 de septiembre de 2026 llegaron protones solares rápidos. ¡Cuida el escudo de la base!",
+      "en": "After the Sept 5, 2026 flare, fast solar protons arrived. Act fast to protect the lunar base shield!"
+    },
+    "verificado": true
   },
   {
     "id": "semana-2-j3",
     "semana": "semana-2",
     "jornada": 3,
     "tipo": "FLR",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-07-30T15:53:00Z",
+    "clase": "M1.9",
     "nivel": "media",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/47867/3/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "El 30 de julio de 2026 ocurrió una fulguración solar M1.9. Elige entre refugiarte o seguir con las misiones.",
+      "en": "On July 30, 2026, an M1.9 solar flare burst from the Sun. Choose whether to take shelter or keep working."
+    },
+    "verificado": true
   },
   {
     "id": "semana-2-j5",
     "semana": "semana-2",
     "jornada": 5,
     "tipo": "SEP",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-07-30T18:45:00Z",
+    "clase": "SEP GOES >10 MeV",
     "nivel": "fuerte",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/47879/2/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "El 30 de julio de 2026 los sensores GOES captaron una tormenta de partículas (>10 MeV). ¡Protege el puesto lunar!",
+      "en": "On July 30, 2026, GOES sensors detected a solar particle storm (>10 MeV). Protect the lunar outpost!"
+    },
+    "verificado": true
   },
   {
     "id": "semana-3-j3",
     "semana": "semana-3",
     "jornada": 3,
     "tipo": "FLR",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-08-20T11:32:00Z",
+    "clase": "M8.1",
     "nivel": "media",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/48158/3/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "El 20 de agosto de 2026 el Sol lanzó una intensa fulguración M8.1. Decide rápido cómo proteger la base.",
+      "en": "On Aug 20, 2026, the Sun unleashed a strong M8.1 solar flare. Act fast to keep the lunar base safe."
+    },
+    "verificado": true
   },
   {
     "id": "semana-3-j5",
     "semana": "semana-3",
     "jornada": 5,
     "tipo": "SEP",
-    "fecha": "",
-    "clase": "",
+    "fecha": "2026-08-20T20:23:00Z",
+    "clase": "SEP STEREO A 13-100 MeV",
     "nivel": "fuerte",
     "fuenteNombre": "NASA DONKI",
-    "fuenteUrl": "",
-    "consultadoEn": "",
-    "textoNinos": { "es": "", "en": "" },
-    "verificado": false
+    "fuenteUrl": "https://ccmc.gsfc.nasa.gov/DONKI/events/48176/1/",
+    "consultadoEn": "2026-11-15",
+    "textoNinos": {
+      "es": "El 20 de agosto de 2026 la sonda STEREO A detectó partículas solares energéticas (13-100 MeV). ¡Cuida el escudo!",
+      "en": "On Aug 20, 2026, STEREO A detected energetic solar particles (13-100 MeV). Watch the base shield!"
+    },
+    "verificado": true
   }
 ]

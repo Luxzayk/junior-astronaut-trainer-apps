@@ -1,6 +1,6 @@
 {
-  "name": "Entrenador Lunar Junior",
-  "description": "Base del juego educativo 2D de gestión de un puesto lunar para astronautas junior.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+    "name": "Entrenador Lunar Junior",
+    "description": "Juego bilingüe (ES/EN) de 5 jornadas: cuida Aire, Energía y Escudo en un puesto lunar ante fulguraciones y tormentas solares de archivo de NASA DONKI.",
+    "requestFramePermissions": [],
+    "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -14,7 +14,7 @@ La asistencia de herramientas de IA se utilizó para acelerar tareas de desarrol
 4. **Borradores de documentación:** guías de usuario, README y plantillas de entrega en `docs/`.
 
 ## Qué revisó, validó y curó el equipo humano / Human curation & verification
-- `[qué revisó el equipo]`
+
 - Revisión manual de todos los eventos históricos de clima espacial (`src/data/eventos.json`) y sus fechas/fuentes reales antes de marcar `"verificado": true`.
 - Validación pedagógica del lenguaje para niñas y niños de 7 a 12 años en español e inglés.
 - Verificación de que **ningún dato de la NASA fue inventado por IA**, que el juego no realiza llamadas de red en ejecución (`tests/no-red.test.ts`), y que las pruebas automatizadas (`npm test`), el chequeo de tipos (`npm run lint`) y la compilación (`npm run build`) pasan completos.

@@ -28,10 +28,10 @@ El jugador recorre un puesto lunar 2D durante **5 jornadas** cuidando **Aire**, 
 - Al cerrar las 5 jornadas (o si el aire llega a 0%), recibe un **Informe Final** con su rango (`Comandante`, `Especialista`, `Cadete`, `Astronauta en entrenamiento`), sus decisiones difíciles, aprendizajes y datos usados.
 
 ### 6. Equipo y roles
-- `[nombre]` — Diseño educativo y narrativa infantil
-- `[nombre]` — Programación del juego (TypeScript + Phaser 3)
-- `[nombre]` — Curación de datos NASA DONKI y validación científica
-- `[nombre]` — Accesibilidad, pruebas y guion de demostración
+- `[Paulo]` — Diseño educativo y narrativa infantil
+- `[Diego]` — Programación del juego (TypeScript + Phaser 3)
+- `[Bonifacio]` — Curación de datos NASA DONKI y validación científica
+- `[Josue]` — Accesibilidad, pruebas y guion de demostración
 
 ### Justificación de premios sugeridos
 
@@ -64,10 +64,10 @@ Players manage a 2D lunar outpost across **5 days (jornadas)** balancing **Air**
 - Review a **Final Report** with earned rank (`Commander`, `Specialist`, `Cadet`, `Astronaut in training`), tough decisions, takeaways, and data stamps (plus a short root-cause report on evacuation).
 
 ### 6. Team members & roles
-- `[nombre]` — Educational design & kid-friendly writing
-- `[nombre]` — Gameplay engineering (TypeScript + Phaser 3)
-- `[nombre]` — NASA DONKI data curation & science review
-- `[nombre]` — Accessibility, QA testing & demo production
+- `[Paulo]` — Educational design & kid-friendly writing
+- `[Diego]` — Gameplay engineering (TypeScript + Phaser 3)
+- `[Bonifacio]` — NASA DONKI data curation & science review
+- `[Josue]` — Accessibility, QA testing & demo production
 
 ### Award justifications
 

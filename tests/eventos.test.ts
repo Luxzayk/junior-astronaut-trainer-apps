@@ -52,10 +52,9 @@ describe('Cargador de eventos curados (DONKI local) y 3 semanas', () => {
       const { j3, j5 } = obtenerEventosDeSemana(semana.id);
       expect(j3.id).toBe(semana.eventos.j3);
       expect(j5.id).toBe(semana.eventos.j5);
-      // Estado inicial honesto sin datos inventados
-      expect(j3.esEjemplo).toBe(true);
-      expect(j5.esEjemplo).toBe(true);
-      expect(semanaTieneDatosVerificados(semana.id)).toBe(false);
+      expect(j3.esEjemplo).toBe(false);
+      expect(j5.esEjemplo).toBe(false);
+      expect(semanaTieneDatosVerificados(semana.id)).toBe(true);
     }
   });
 
@@ -247,8 +246,8 @@ describe('Cargador de eventos curados (DONKI local) y 3 semanas', () => {
     expect(elegirSemanaAlAzar(() => 0.5).id).toBe('semana-2');
     expect(elegirSemanaAlAzar(() => 0.99).id).toBe('semana-3');
 
-    expect(formatearVentanaSemana(SEMANAS[0], 'es')).toContain('ejemplo');
-    expect(formatearVentanaSemana(SEMANAS[0], 'en')).toContain('sample');
+    expect(formatearVentanaSemana(SEMANAS[0], 'es')).toBe('2026-09-01 · 2026-09-07');
+    expect(formatearVentanaSemana(SEMANAS[0], 'en')).toBe('2026-09-01 · 2026-09-07');
 
     gameState.iniciarSemana('semana-3');
     expect(gameState.getSnapshot().semanaId).toBe('semana-3');

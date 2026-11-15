@@ -7,83 +7,105 @@
 // Uso manual (cuando tengas fechas reales):
 //   NASA_API_KEY=TU_CLAVE node scripts/fetch-donki.mjs
 
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+    mkdirSync,
+    writeFileSync
+} from 'node:fs';
+import {
+    dirname,
+    resolve
+} from 'node:path';
+import {
+    fileURLToPath
+} from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(fileURLToPath(
+    import.meta.url));
 const RAIZ_PROYECTO = resolve(__dirname, '..');
 const CARPETA_DONKI = resolve(RAIZ_PROYECTO, 'src/data/donki');
 const API_KEY = process.env.NASA_API_KEY || 'DEMO_KEY';
 const PAUSA_ENTRE_PETICIONES_MS = 2000;
 
 // Reemplaza AAAA-MM-DD por las ventanas reales antes de ejecutar manualmente.
-const SEMANAS = [
-  { id: 'semana-1', inicio: 'AAAA-MM-DD', fin: 'AAAA-MM-DD' },
-  { id: 'semana-2', inicio: 'AAAA-MM-DD', fin: 'AAAA-MM-DD' },
-  { id: 'semana-3', inicio: 'AAAA-MM-DD', fin: 'AAAA-MM-DD' },
+const SEMANAS = [{
+        id: 'semana-1',
+        inicio: '2026-09-01',
+        fin: '2026-09-07'
+    },
+    {
+        id: 'semana-2',
+        inicio: '2026-07-27',
+        fin: '2026-08-02'
+    },
+    {
+        id: 'semana-3',
+        inicio: '2026-08-17',
+        fin: '2026-08-23'
+    },
 ];
 
 function esperar(ms) {
-  return new Promise((resolver) => setTimeout(resolver, ms));
+    return new Promise((resolver) => setTimeout(resolver, ms));
 }
 
 function esFechaIsoSimple(fecha) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+    return /^\d{4}-\d{2}-\d{2}$/.test(fecha);
 }
 
 async function consultarEndpointDonki(tipo, inicio, fin) {
-  const url = new URL(`https://api.nasa.gov/DONKI/${tipo}`);
-  url.searchParams.set('startDate', inicio);
-  url.searchParams.set('endDate', fin);
-  url.searchParams.set('api_key', API_KEY);
+    const url = new URL(`https://api.nasa.gov/DONKI/${tipo}`);
+    url.searchParams.set('startDate', inicio);
+    url.searchParams.set('endDate', fin);
+    url.searchParams.set('api_key', API_KEY);
 
-  const respuesta = await fetch(url);
-  if (!respuesta.ok) {
-    throw new Error(
-      `Error HTTP ${respuesta.status} (${respuesta.statusText}) al consultar DONKI/${tipo} para ${inicio}..${fin}`,
-    );
-  }
-  return respuesta.json();
+    const respuesta = await fetch(url);
+    if (!respuesta.ok) {
+        throw new Error(
+            `Error HTTP ${respuesta.status} (${respuesta.statusText}) al consultar DONKI/${tipo} para ${inicio}..${fin}`,
+        );
+    }
+    return respuesta.json();
 }
 
 async function ejecutar() {
-  mkdirSync(CARPETA_DONKI, { recursive: true });
+    mkdirSync(CARPETA_DONKI, {
+        recursive: true
+    });
 
-  for (let i = 0; i < SEMANAS.length; i++) {
-    const semana = SEMANAS[i];
-    if (!esFechaIsoSimple(semana.inicio) || !esFechaIsoSimple(semana.fin)) {
-      throw new Error(
-        `La semana "${semana.id}" tiene fechas placeholder (${semana.inicio} .. ${semana.fin}). Define fechas YYYY-MM-DD antes de ejecutar.`,
-      );
+    for (let i = 0; i < SEMANAS.length; i++) {
+        const semana = SEMANAS[i];
+        if (!esFechaIsoSimple(semana.inicio) || !esFechaIsoSimple(semana.fin)) {
+            throw new Error(
+                `La semana "${semana.id}" tiene fechas placeholder (${semana.inicio} .. ${semana.fin}). Define fechas YYYY-MM-DD antes de ejecutar.`,
+            );
+        }
+
+        const flr = await consultarEndpointDonki('FLR', semana.inicio, semana.fin);
+        await esperar(PAUSA_ENTRE_PETICIONES_MS);
+
+        const sep = await consultarEndpointDonki('SEP', semana.inicio, semana.fin);
+
+        const salida = {
+            consultadoEn: new Date().toISOString(),
+            ventana: {
+                inicio: semana.inicio,
+                fin: semana.fin,
+            },
+            flr,
+            sep,
+        };
+
+        const rutaDestino = resolve(CARPETA_DONKI, `${semana.id}.raw.json`);
+        writeFileSync(rutaDestino, `${JSON.stringify(salida, null, 2)}\n`, 'utf8');
+        console.log(`Guardado ${rutaDestino}`);
+
+        if (i < SEMANAS.length - 1) {
+            await esperar(PAUSA_ENTRE_PETICIONES_MS);
+        }
     }
-
-    const flr = await consultarEndpointDonki('FLR', semana.inicio, semana.fin);
-    await esperar(PAUSA_ENTRE_PETICIONES_MS);
-
-    const sep = await consultarEndpointDonki('SEP', semana.inicio, semana.fin);
-
-    const salida = {
-      consultadoEn: new Date().toISOString(),
-      ventana: {
-        inicio: semana.inicio,
-        fin: semana.fin,
-      },
-      flr,
-      sep,
-    };
-
-    const rutaDestino = resolve(CARPETA_DONKI, `${semana.id}.raw.json`);
-    writeFileSync(rutaDestino, `${JSON.stringify(salida, null, 2)}\n`, 'utf8');
-    console.log(`Guardado ${rutaDestino}`);
-
-    if (i < SEMANAS.length - 1) {
-      await esperar(PAUSA_ENTRE_PETICIONES_MS);
-    }
-  }
 }
 
 ejecutar().catch((err) => {
-  console.error('Fallo en fetch-donki:', err instanceof Error ? err.message : err);
-  process.exitCode = 1;
+    console.error('Fallo en fetch-donki:', err instanceof Error ? err.message : err);
+    process.exitCode = 1;
 });

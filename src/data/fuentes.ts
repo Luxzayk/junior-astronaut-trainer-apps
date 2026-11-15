@@ -41,7 +41,7 @@ export const FUENTES_DATOS: readonly DefinicionFuente[] = [
       en: 'Catalog of solar flares (FLR) and solar energetic particle events (SEP) queried offline for archival snapshots.',
     },
     url: 'https://api.nasa.gov',
-    urlWeb: '',
+    urlWeb: 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/',
     nota: {
       es: 'Etiqueta fija: datos de archivo locales. El juego nunca hace peticiones de red.',
       en: 'Fixed label: local archive data. The game never makes network requests.',

@@ -32,10 +32,10 @@ export const DATOS_CREDITOS: DatosCreditos = {
     en: 'Independent project created for NASA Space Apps 2026; not affiliated with or endorsed by NASA.',
   },
   equipo: [
-    '[nombre] — Diseño de juego y narrativa educativa',
-    '[nombre] — Programación y sistemas',
-    '[nombre] — Curación de datos y ciencia',
-    '[nombre] — Accesibilidad, pruebas y demostración',
+    '[Paulo] — Diseño de juego y narrativa educativa',
+    '[Diego] — Programación y sistemas',
+    '[Bonifacio] — Curación de datos y ciencia',
+    '[Josue] — Accesibilidad, pruebas y demostración',
   ],
   tecnologias: [
     'Phaser 3 (MIT)',

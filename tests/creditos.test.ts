@@ -23,7 +23,7 @@ describe('Datos de Créditos y Licencias', () => {
     expect(DATOS_CREDITOS.tipografia.es).toContain('OFL');
     expect(DATOS_CREDITOS.avisoIA.es).toContain('herramientas de IA');
     expect(DATOS_CREDITOS.equipo.some((item) => item.includes('[nombre]'))).toBe(
-      true,
+      false,
     );
   });
 
