@@ -3,7 +3,7 @@ import {
   DRENAJE_BASE_POR_SEG,
   DURACION_JORNADA,
   MULT_DRENAJE_POR_JORNADA,
-  RECURSOS_INICIALES,
+  RANGO_RECURSOS_INICIALES,
   SEGUNDO_EVENTO_CLIMA,
   SEGUNDO_EVENTO_FUGA,
   VENTANA_FUGA,
@@ -31,20 +31,21 @@ describe('GameStateManager (state.ts)', () => {
 
   it('aplica el multiplicador de drenaje correspondiente a la jornada', () => {
     const dt = 10;
+    const inicioJ1 = gameState.getSnapshot();
     const multJ1 = MULT_DRENAJE_POR_JORNADA[0];
     gameState.tick(dt);
 
     const snapJ1 = gameState.getSnapshot();
     expect(snapJ1.aire).toBeCloseTo(
-      RECURSOS_INICIALES.aire - DRENAJE_BASE_POR_SEG.aire * multJ1 * dt,
+      inicioJ1.aire - DRENAJE_BASE_POR_SEG.aire * multJ1 * dt,
       5,
     );
     expect(snapJ1.energia).toBeCloseTo(
-      RECURSOS_INICIALES.energia - DRENAJE_BASE_POR_SEG.energia * multJ1 * dt,
+      inicioJ1.energia - DRENAJE_BASE_POR_SEG.energia * multJ1 * dt,
       5,
     );
     expect(snapJ1.escudo).toBeCloseTo(
-      RECURSOS_INICIALES.escudo - DRENAJE_BASE_POR_SEG.escudo * multJ1 * dt,
+      inicioJ1.escudo - DRENAJE_BASE_POR_SEG.escudo * multJ1 * dt,
       5,
     );
 
@@ -67,7 +68,8 @@ describe('GameStateManager (state.ts)', () => {
     const alEvacuar = vi.fn();
     const desuscribir = gameState.on('evacuacion', alEvacuar);
 
-    gameState.cambiarRecurso('aire', -99);
+    const antes = gameState.getSnapshot();
+    gameState.cambiarRecurso('aire', -(antes.aire - 1));
     expect(gameState.getSnapshot().estado).toBe('jugando');
 
     gameState.tick(10);
@@ -141,16 +143,19 @@ describe('GameStateManager (state.ts)', () => {
 
     expect(reiniciado.jornada).toBe(1);
     expect(reiniciado.segundos).toBe(0);
-    expect(reiniciado.aire).toBe(RECURSOS_INICIALES.aire);
-    expect(reiniciado.energia).toBe(RECURSOS_INICIALES.energia);
-    expect(reiniciado.escudo).toBe(RECURSOS_INICIALES.escudo);
+    expect(reiniciado.aire).toBeGreaterThanOrEqual(RANGO_RECURSOS_INICIALES.min);
+    expect(reiniciado.aire).toBeLessThanOrEqual(RANGO_RECURSOS_INICIALES.max);
+    expect(reiniciado.energia).toBeGreaterThanOrEqual(RANGO_RECURSOS_INICIALES.min);
+    expect(reiniciado.energia).toBeLessThanOrEqual(RANGO_RECURSOS_INICIALES.max);
+    expect(reiniciado.escudo).toBeGreaterThanOrEqual(RANGO_RECURSOS_INICIALES.min);
+    expect(reiniciado.escudo).toBeLessThanOrEqual(RANGO_RECURSOS_INICIALES.max);
     expect(reiniciado.misionesHechas).toEqual([]);
     expect(reiniciado.pausado).toBe(false);
     expect(reiniciado.estado).toBe('jugando');
   });
 
   it('avanza el reloj y drena recursos durante un minijuego y difiere eventos popup hasta volver a jugando', () => {
-    // Jornada 3 tiene evento 'clima' en SEGUNDO_EVENTO_CLIMA (90s)
+    // Jornada 3 tiene evento 'clima' en SEGUNDO_EVENTO_CLIMA (60s)
     gameState.siguienteJornada();
     gameState.siguienteJornada();
     const alAbrirEvento = vi.fn();
@@ -182,7 +187,8 @@ describe('GameStateManager (state.ts)', () => {
   it('evacua durante un minijuego si el aire llega a 0 y no abre elección fantasma si la fuga expiró dentro del minijuego', () => {
     // 1. Evacuación durante minijuego
     gameState.iniciarMinijuego('energia', 'j1_energia', 'nodos');
-    gameState.cambiarRecurso('aire', -99);
+    const aireAntesMini = gameState.getSnapshot().aire;
+    gameState.cambiarRecurso('aire', -(aireAntesMini - 1));
     gameState.tick(10);
     expect(gameState.getSnapshot().aire).toBe(0);
     expect(gameState.getSnapshot().estado).toBe('evacuacion');

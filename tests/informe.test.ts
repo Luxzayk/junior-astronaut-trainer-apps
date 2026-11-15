@@ -70,6 +70,7 @@ describe('Rango, causa principal de evacuación e Informe Final', () => {
 
     // Completar J1
     gm.completarMision('j1_energia');
+    gm.completarMision('j1_escudos');
     gm.forzarFinJornada();
     gm.siguienteJornada();
 
@@ -118,7 +119,8 @@ describe('Rango, causa principal de evacuación e Informe Final', () => {
     const gm = new GameStateManager();
     gm.iniciarSemana('semana-1');
     gm.irAJornadaDebug(4);
-    gm.cambiarRecurso('aire', -88); // aire en 12
+    const aireAntes = gm.getSnapshot().aire;
+    gm.cambiarRecurso('aire', -(aireAntes - 12)); // aire en 12
     gm.forzarEventoJornadaDebug();
     gm.resolverApagon('soporteVida'); // -16 aire -> evacua en J4
 

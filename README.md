@@ -16,11 +16,11 @@ npm run lint     # Verifica tipos con TypeScript strict (tsc --noEmit)
 
 ### Modos de entrada por URL
 - **Juego normal**: `/` abre `MenuScene` con **Jugar la semana** (selector de 3 semanas de 5 jornadas), **Demo de 4 minutos**, **Glosario**, **Fuentes**, **Ajustes**, **Créditos**, selector rápido **ES / EN** y botón rápido de **Sonido**.
-- **Modo Demo (`?demo=1`)**: inicia directo en la **Jornada 3** (`150s`), con recursos iniciales `{ aire: 70, energia: 65, escudo: 80 }` y el evento de fulguración solar disparando a los `60s`.
+- **Modo Demo (`?demo=1`)**: inicia directo en la **Jornada 3** (`120s`), con recursos iniciales `{ aire: 70, energia: 65, escudo: 80 }` y el evento de fulguración solar disparando a los `50s`.
 - **Modo Debug (`?debug=1`)** y **Rendimiento (`?debug=1&perf=1`)**: activan atajos de inspección y el contador en vivo de FPS y partículas (sin `?debug=1` no existen atajos ni overlays de debug).
 
 ### Flujo de juego (5 jornadas completas)
-1. **Menú y misiones activas**: cada jornada publica entre 1 y 2 misiones principales con estación y minijuego asignados. En el mapa se muestran el panel de misiones pendientes y el marcador en la estación activa. En la Jornada 1, si es la primera vez, arranca el tutorial interactivo de 7 pasos.
+1. **Menú y misiones activas**: cada jornada publica entre 1 y 2 misiones principales con estación y minijuego asignados (Jornada 1 incluye 2 misiones: Energía y Escudos). En el mapa se muestran el panel de misiones pendientes y el marcador en la estación activa. En la Jornada 1, si es la primera vez, arranca el tutorial interactivo de 7 pasos.
 2. **Tres minijuegos con registro común (`MINIGAME_REGISTRY`)**:
    - **Nodos (`energia`)**: circuito de cables (`4x3`) con rotación hasta conectar Entrada con Salida (costo de intento `-3%` Energía, límite `60s`, pista visual a los `10s`).
    - **Válvulas (`invernadero` / `tanque`)**: secuencia de válvulas A/B/C mientras sube el medidor de presión (`+2.5/s`, acierto `-15`, error `+18`, costo de intento `-2%` Energía, límite `45s`).
@@ -30,10 +30,10 @@ npm run lint     # Verifica tipos con TypeScript strict (tsc --noEmit)
    - `invernadero` (`invernadero`): **Plena luz** vs **Ahorro de agua y luz**.
    - `escudo_potencia` (`escudos`): **Potencia alta** vs **Potencia baja**.
 4. **Los 4 eventos de la semana**:
-   - **Jornada 2 (`70s`) — Fuga en Tanque**: misión urgente (`40s` de ventana) que no pausa el reloj ni requiere `ChoiceScene`; si expira, activa `aguaBaja` en la Jornada 3 (drenaje de Aire `x1.15`).
-   - **Jornada 3 (`90s`) — Fulguración solar (`FLR`)**: pausa la jornada y da a elegir **Refugiarte** (`-12` Energía y pierde las misiones pendientes de la jornada) o **Seguir trabajando** (`-25` Escudo).
-   - **Jornada 4 (`70s`) — Apagón (`ApagonScene`)**: pausa y obliga a apagar uno de 3 módulos (**Soporte de vida** `-16` Aire, **Escudos** `-22` Escudo o **Invernadero** `-10` Energía y pierde misiones pendientes de Invernadero).
-   - **Jornada 5 (`100s`) — Tormenta grande (`TORMENTA_GRANDE`)**: alerta mayor con decisión entre **Refugiarte** (`-15` Energía y pierde pendientes) o **Seguir trabajando** (`-35` Escudo).
+   - **Jornada 2 (`45s`) — Fuga en Tanque**: misión urgente (`35s` de ventana) que no pausa el reloj ni requiere `ChoiceScene`; si expira, activa `aguaBaja` en la Jornada 3 (drenaje de Aire `x1.15`).
+   - **Jornada 3 (`60s`) — Fulguración solar (`FLR`)**: pausa la jornada y da a elegir **Refugiarte** (`-12` Energía y pierde las misiones pendientes de la jornada) o **Seguir trabajando** (`-25` Escudo).
+   - **Jornada 4 (`50s`) — Apagón (`ApagonScene`)**: pausa y obliga a apagar uno de 3 módulos (**Soporte de vida** `-16` Aire, **Escudos** `-22` Escudo o **Invernadero** `-10` Energía y pierde misiones pendientes de Invernadero).
+   - **Jornada 5 (`70s`) — Tormenta grande (`TORMENTA_GRANDE`)**: alerta mayor con decisión entre **Refugiarte** (`-15` Energía y pierde pendientes) o **Seguir trabajando** (`-35` Escudo).
 5. **Cierre, Bitácora e Informe Final**:
    - Secuencias animadas cortas y saltables (`src/fx/cierres.ts`) acompañadas por **Luni** (`src/art/mascota.ts`) y audio sintetizado suave (`src/audio/audio.ts`).
    - Al completar la Jornada 5 o sufrir una evacuación (`Aire <= 0%`) en modo semana se abre `InformeScene` con el rango obtenido (`Comandante`, `Especialista`, `Cadete` o `Astronauta en entrenamiento`), bitácora de decisiones difíciles, datos usados, nota opcional de OSDR y botón para copiar resultado.
@@ -68,14 +68,15 @@ El juego funciona **100 % sin conexión y sin llamadas de red en tiempo de ejecu
 | :--- | :--- | :--- |
 | Catálogo, fechas, clases (`M`/`X`) y ventanas de FLR y SEP | **Dato histórico de archivo (NASA DONKI)** | Solo cuando `"verificado": true` en `src/data/eventos.json`; en caso contrario se etiqueta explícitamente como **Dato de ejemplo**. |
 | Notas educativas opcionales sobre plantas/radiación | **Dato curado local (NASA OSDR)** | `src/data/osdr.json`, siempre acompañado de su sello de archivo o ejemplo. |
-| Porcentajes iniciales (`100%`), drenajes por segundo, costos de minijuegos, efectos de decisiones/eventos, duraciones (`180s`/`150s`), rangos y mascota **Luni** | **Balance y diseño educativo del juego** | Definidos en `src/game/balance.ts`, `src/art/mascota.ts` e `src/i18n.ts`; declarados expresamente como simulación educativa en `FuentesScene`, `MinigameScene`, `EventScene` e `InformeScene`. |
+| Porcentajes iniciales (`70%–80%` aleatorios), drenajes por segundo, costos de minijuegos, efectos de decisiones/eventos, duraciones (`120s`), rangos y mascota **Luni** | **Balance y diseño educativo del juego** | Definidos en `src/game/balance.ts`, `src/art/mascota.ts` e `src/i18n.ts`; declarados expresamente como simulación educativa en `FuentesScene`, `MinigameScene`, `EventScene` e `InformeScene`. |
 
 ### Parámetros finales calibrados (`src/game/balance.ts`)
 
 | Constante | Valor calibrado | Nota |
 | :--- | :--- | :--- |
-| `DURACION_JORNADA` | `180` s | `5` jornadas (`150` s en Demo) |
-| `DRENAJE_BASE_POR_SEG` | `{ aire: 0.26, energia: 0.11, escudo: 0.08 }` | Por segundo base (`x1.00`) |
+| `DURACION_JORNADA` | `120` s | `5` jornadas (`2` minutos por jornada, `120` s en Demo) |
+| `RANGO_RECURSOS_INICIALES` | `70`–`80` % | Sorteo inicial independiente por recurso (`75` base en simulación) |
+| `DRENAJE_BASE_POR_SEG` | `{ aire: 0.38, energia: 0.12, escudo: 0.105 }` | Por segundo base (`x1.00`) |
 | `MULT_DRENAJE_POR_JORNADA` | `[0.70, 0.85, 1.00, 1.15, 1.25]` | J1..J5 |
 | `COSTO_INTENTO_MINIJUEGO` | `nodos: -3`, `valvulas: -2`, `escudo: -2` Energía | Al abrir estación |
 | `RECARGA_COMPLETA` | `+20` Energía | Cierre con todas las misiones hechas |
@@ -84,10 +85,10 @@ El juego funciona **100 % sin conexión y sin llamadas de red en tiempo de ejecu
 | `ELECCIONES.envio_energia` | `mandarAire (+30 Aire, -6 E)` / `mandarEscudo (+30 Esc, -6 E)` | No dominadas |
 | `ELECCIONES.invernadero` | `plenaLuz (+38 Aire, -8 E)` / `ahorro (+24 Aire, -3 E)` | No dominadas |
 | `ELECCIONES.escudo_potencia` | `potenciaAlta (+32 Esc, -8 E)` / `potenciaBaja (+20 Esc, -3 E)` | No dominadas |
-| `AGUA_BAJA_MULT_AIRE` | `x1.15` | Si expira la fuga de J2 (`40s`) |
-| `EFECTOS_EVENTO_FLR` (J3 `90s`) | `refugiarte (-12 E, pierde pendientes)` / `seguirTrabajando (-25 Esc)` | Restringido a `'media'` en J3 para conservar mínimo `>= 10%` |
-| `EFECTOS_APAGON` (J4 `70s`) | `soporteVida (-16 Aire)` / `escudos (-22 Esc)` / `invernadero (-10 E, pierde Inv.)` | No dominadas |
-| `EFECTOS_EVENTO_TORMENTA_GRANDE` (J5 `100s`) | `refugiarte (-15 E, pierde pendientes)` / `seguirTrabajando (-35 Esc)` | No dominadas |
+| `AGUA_BAJA_MULT_AIRE` | `x1.15` | Si expira la fuga de J2 (`35s` a los `45s`) |
+| `EFECTOS_EVENTO_FLR` (J3 `60s`) | `refugiarte (-12 E, pierde pendientes)` / `seguirTrabajando (-25 Esc)` | Restringido a `'media'` en J3 para conservar mínimo `>= 10%` |
+| `EFECTOS_APAGON` (J4 `50s`) | `soporteVida (-16 Aire)` / `escudos (-22 Esc)` / `invernadero (-10 E, pierde Inv.)` | No dominadas |
+| `EFECTOS_EVENTO_TORMENTA_GRANDE` (J5 `70s`) | `refugiarte (-15 E, pierde pendientes)` / `seguirTrabajando (-35 Esc)` | No dominadas |
 | `RANGOS` | `commander: 5`, `specialist: 4`, `cadet: 2`, `trainee: 0` | Basados en jornadas completas |
 
 ### Simulación combinatoria (`src/game/simulation.ts`)
@@ -98,12 +99,12 @@ npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(s
 
 | Combinación `(J3, J5)` | Política | Mínimo semana (`A / E / S`) | Final semana (`A / E / S`) | Resultado |
 | :--- | :--- | :--- | :--- | :--- |
-| `(media, media)` *(válida)* | `perfecto` | `13.7 / 13.1 / 30.7` | `13.7 / 33.0 / 30.7` | **Completa J5** (mín `>= 10`, final `< 40`) |
-| `(media, media)` *(válida)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
-| `(media, media)` *(válida)* | `pasivo` | `0.0 / 57.0 / 69.6` | `0.0 / 57.0 / 69.6` | **Evacuado en J3** (`<= 3`) |
-| `(media, fuerte)` *(válida)* | `perfecto` | `13.7 / 13.1 / 20.7` | `13.7 / 33.0 / 20.7` | **Completa J5** (mín `>= 10`, final `< 40`) |
-| `(media, fuerte)` *(válida)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
-| `(media, fuerte)` *(válida)* | `pasivo` | `0.0 / 57.0 / 69.6` | `0.0 / 57.0 / 69.6` | **Evacuado en J3** (`<= 3`) |
+| `(media, media)` *(válida)* | `perfecto` | `20.3 / 14.9 / 22.6` | `20.3 / 34.7 / 22.6` | **Completa J5** (mín `>= 10`, final `< 40`) |
+| `(media, media)` *(válida)* | `mediocre` | `0.0 / 0.0 / 0.0` | `0.0 / 0.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
+| `(media, media)` *(válida)* | `pasivo` | `0.0 / 49.7 / 52.6` | `0.0 / 61.4 / 52.6` | **Evacuado en J3** (`<= 3`) |
+| `(media, fuerte)` *(válida)* | `perfecto` | `20.3 / 14.9 / 12.6` | `20.3 / 34.7 / 12.6` | **Completa J5** (mín `>= 10`, final `< 40`) |
+| `(media, fuerte)` *(válida)* | `mediocre` | `0.0 / 0.0 / 0.0` | `0.0 / 0.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
+| `(media, fuerte)` *(válida)* | `pasivo` | `0.0 / 49.7 / 52.6` | `0.0 / 61.4 / 52.6` | **Evacuado en J3** (`<= 3`) |
 
 ---
 

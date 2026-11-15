@@ -1,7 +1,11 @@
 // Motor de simulación pura de 5 jornadas (sin Phaser) reutilizando la lógica real del juego
 
 import type { EventosProvider, NivelEvento } from '../data/eventosLoader';
-import { MAX_JORNADAS, SIM_TIEMPO_MISION } from './balance';
+import {
+  MAX_JORNADAS,
+  RECURSOS_INICIALES,
+  SIM_TIEMPO_MISION,
+} from './balance';
 import type { TipoCierre } from './closing';
 import {
   obtenerOpcionesApagon,
@@ -23,6 +27,7 @@ export type PoliticaSimulacion = 'perfecto' | 'pasivo' | 'mediocre';
 export interface OpcionesSimulacionSemana {
   nivelJ3?: NivelEvento;
   nivelJ5?: NivelEvento;
+  recursosIniciales?: MinimosRecursos;
 }
 
 export interface MinimosRecursos {
@@ -226,7 +231,10 @@ export function simularSemana(
 ): ResultadoSemanaSim {
   const provider = crearProviderSimulacion(opciones);
   const motor = new GameStateManager(provider);
-  motor.iniciarSemana();
+  motor.iniciarSemana(
+    undefined,
+    opciones?.recursosIniciales ?? { ...RECURSOS_INICIALES },
+  );
 
   let eventoClimaOpciones: TipoOpcionesClima = 'FULGURACION';
   motor.on('evento:abrir', (ev) => {

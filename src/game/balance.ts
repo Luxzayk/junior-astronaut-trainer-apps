@@ -1,19 +1,41 @@
 // Estos valores son balance de juego, no datos de NASA.
 
-export const DURACION_JORNADA = 180; // segundos
+export const DURACION_JORNADA = 120; // segundos (2 minutos)
 
 export const MAX_JORNADAS = 5;
 
-export const RECURSOS_INICIALES = {
-  aire: 100,
-  energia: 100,
-  escudo: 100,
+export const RANGO_RECURSOS_INICIALES = {
+  min: 70,
+  max: 80,
 } as const;
 
+export const RECURSOS_INICIALES = {
+  aire: 75,
+  energia: 75,
+  escudo: 75,
+} as const;
+
+export function generarRecursosIniciales(
+  randomFn: () => number = Math.random,
+): { aire: number; energia: number; escudo: number } {
+  const { min, max } = RANGO_RECURSOS_INICIALES;
+  const span = max - min + 1;
+  const sortear = (): number => {
+    const r = randomFn();
+    const clamped = Math.max(0, Math.min(0.999999, Number.isFinite(r) ? r : 0.5));
+    return min + Math.floor(clamped * span);
+  };
+  return {
+    aire: sortear(),
+    energia: sortear(),
+    escudo: sortear(),
+  };
+}
+
 export const DRENAJE_BASE_POR_SEG = {
-  aire: 0.26,
-  energia: 0.11,
-  escudo: 0.08,
+  aire: 0.38,
+  energia: 0.12,
+  escudo: 0.105,
 } as const; // balance de juego, no datos de NASA
 
 // Índice = jornada - 1
@@ -78,7 +100,7 @@ export const REFUERZO_CONTROL_MISION = {
 } as const; // balance de juego, no datos de NASA
 
 export const JORNADA_EVENTO_CLIMA = 3; // balance de juego, no datos de NASA
-export const SEGUNDO_EVENTO_CLIMA = 90; // balance de juego, no datos de NASA
+export const SEGUNDO_EVENTO_CLIMA = 60; // balance de juego, no datos de NASA
 
 export const EFECTOS_EVENTO_FLR = {
   refugiarte: {
@@ -137,11 +159,11 @@ export const ELECCIONES = {
   },
 } as const; // balance de juego, no datos de NASA
 
-export const SEGUNDO_EVENTO_FUGA = 70; // balance de juego, no datos de NASA
-export const VENTANA_FUGA = 40; // balance de juego, no datos de NASA
+export const SEGUNDO_EVENTO_FUGA = 45; // balance de juego, no datos de NASA
+export const VENTANA_FUGA = 35; // balance de juego, no datos de NASA
 export const AGUA_BAJA_MULT_AIRE = 1.15; // balance de juego, no datos de NASA
 
-export const SEGUNDO_EVENTO_APAGON = 70; // balance de juego, no datos de NASA
+export const SEGUNDO_EVENTO_APAGON = 50; // balance de juego, no datos de NASA
 export const DURACION_BANNER_APAGON_MS = 3000; // balance de juego, no datos de NASA
 export const EFECTOS_APAGON = {
   soporteVida: { aire: -16 },
@@ -149,7 +171,7 @@ export const EFECTOS_APAGON = {
   invernadero: { energia: -10 },
 } as const; // balance de juego, no datos de NASA
 
-export const SEGUNDO_EVENTO_TORMENTA_GRANDE = 100; // balance de juego, no datos de NASA
+export const SEGUNDO_EVENTO_TORMENTA_GRANDE = 70; // balance de juego, no datos de NASA
 export const EFECTOS_EVENTO_TORMENTA_GRANDE = {
   refugiarte: {
     energia: -15,
@@ -160,15 +182,15 @@ export const EFECTOS_EVENTO_TORMENTA_GRANDE = {
 } as const; // balance de juego, no datos de NASA
 
 export const DEMO_JORNADA = 3; // balance de juego, no datos de NASA
-export const DEMO_DURACION = 150; // segundos, balance de juego, no datos de NASA
-export const DEMO_EVENTO_SEGUNDO = 60; // balance de juego, no datos de NASA
+export const DEMO_DURACION = 120; // segundos, balance de juego, no datos de NASA
+export const DEMO_EVENTO_SEGUNDO = 50; // balance de juego, no datos de NASA
 export const DEMO_RECURSOS = {
   aire: 70,
   energia: 65,
   escudo: 80,
 } as const; // balance de juego, no datos de NASA
 
-export const SIM_TIEMPO_MISION = 30; // segundos por misión, balance de juego, no datos de NASA
+export const SIM_TIEMPO_MISION = 25; // segundos por misión, balance de juego, no datos de NASA
 
 // --- Fase 4 (Bloque 3): Tutorial interactivo ---
 export const DISTANCIA_TUTORIAL = 80; // px caminados para completar el paso 2, balance de juego, no datos de NASA

@@ -118,6 +118,24 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         descripcionClave: 'misiones.j1EnergiaDesc',
         obligatoria: true,
       },
+      {
+        id: 'j1_escudos',
+        jornada: 1,
+        estacionId: 'escudos',
+        minijuego: 'escudo',
+        pasos: 3,
+        tiempoLimite: 35,
+        eleccion: 'escudo_potencia',
+        get titulo(): string {
+          return t('misiones.j1EscudosTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j1EscudosDesc');
+        },
+        tituloClave: 'misiones.j1EscudosTitulo',
+        descripcionClave: 'misiones.j1EscudosDesc',
+        obligatoria: true,
+      },
     ],
     evento: null,
   },

@@ -140,4 +140,33 @@ describe('Simulación de 5 jornadas y criterios de calibración', () => {
       expect(pasivo.jornadaEvacuacion!).toBeLessThanOrEqual(3);
     }
   });
+
+  it('mantiene supervivencia perfecto y evacuación pasivo/mediocre en los extremos 70% y 80% iniciales', () => {
+    for (const inicio of [70, 80]) {
+      const recursosIniciales = { aire: inicio, energia: inicio, escudo: inicio };
+      const perfecto = simularSemana('perfecto', {
+        nivelJ3: 'media',
+        nivelJ5: 'fuerte',
+        recursosIniciales,
+      });
+      expect(perfecto.evacuado).toBe(false);
+      expect(perfecto.semanaCompletada).toBe(true);
+
+      const mediocre = simularSemana('mediocre', {
+        nivelJ3: 'media',
+        nivelJ5: 'fuerte',
+        recursosIniciales,
+      });
+      expect(mediocre.evacuado).toBe(true);
+      expect(mediocre.jornadaAlcanzada).toBeGreaterThanOrEqual(3);
+
+      const pasivo = simularSemana('pasivo', {
+        nivelJ3: 'media',
+        nivelJ5: 'fuerte',
+        recursosIniciales,
+      });
+      expect(pasivo.evacuado).toBe(true);
+      expect(pasivo.jornadaEvacuacion!).toBeLessThanOrEqual(3);
+    }
+  });
 });

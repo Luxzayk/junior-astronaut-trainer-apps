@@ -51,7 +51,7 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
       aire: 70,
       energia: 60,
       escudo: 80,
-      misionesHechas: ['j1_energia'],
+      misionesHechas: ['j1_energia', 'j1_escudos'],
       gastoJornada: { aire: 30, energia: 40, escudo: 20 },
       incompletasSeguidasActual: 1,
       refuerzoControlUsadoActual: false,
@@ -59,8 +59,8 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
     });
 
     expect(evalCompleta.resultado.tipo).toBe('completa');
-    expect(evalCompleta.resultado.misionesHechasCount).toBe(1);
-    expect(evalCompleta.resultado.misionesTotal).toBe(1);
+    expect(evalCompleta.resultado.misionesHechasCount).toBe(2);
+    expect(evalCompleta.resultado.misionesTotal).toBe(2);
     expect(evalCompleta.resultado.deltaEnergia).toBe(RECARGA_COMPLETA);
     expect(evalCompleta.nuevoEstadoCierre.energia).toBe(60 + RECARGA_COMPLETA);
     expect(evalCompleta.nuevoEstadoCierre.incompletasSeguidas).toBe(0);
@@ -207,8 +207,8 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
   });
 
   it('lee eventos.json con fallback seguro, dispara FLR en J3 y TORMENTA_GRANDE en J5', () => {
-    expect(DURACION_JORNADA).toBe(180);
-    expect(SEGUNDO_EVENTO_CLIMA).toBe(90);
+    expect(DURACION_JORNADA).toBe(120);
+    expect(SEGUNDO_EVENTO_CLIMA).toBe(60);
 
     const evento3 = obtenerEventoJornada3();
     const evento5 = obtenerEventoJornada5();
@@ -272,7 +272,7 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
     );
   });
 
-  it('dispara apagón en J4 a los 70s y aplica consecuencias de sus 3 opciones', () => {
+  it('dispara apagón en J4 a los 50s y aplica consecuencias de sus 3 opciones', () => {
     gameState.irAJornadaDebug(4);
     gameState.tick(SEGUNDO_EVENTO_APAGON);
     expect(gameState.getSnapshot().estado).toBe('apagon');
@@ -310,7 +310,7 @@ describe('Cierre de jornada, módulo dañado, eventos (Fuga, Clima, Apagón) y D
     );
   });
 
-  it('soporta Modo Demo en Jornada 3 con 150s, recursos iniciales y evento a los 60s', () => {
+  it('soporta Modo Demo en Jornada 3 con 120s, recursos iniciales y evento a los 50s', () => {
     gameState.iniciarDemo();
     const inicio = gameState.getSnapshot();
 

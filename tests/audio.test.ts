@@ -227,12 +227,14 @@ describe('Audio sintetizado con WebAudio (audio.ts y sonidos.ts)', () => {
     const desconectar = motor.conectarEventosJuego(manager);
 
     // Baja energía por debajo de 35% -> alerta_barra
-    manager.cambiarRecurso('energia', -70); // 100 -> 30
+    const energiaAntes = manager.getSnapshot().energia;
+    manager.cambiarRecurso('energia', -(energiaAntes - 30)); // -> 30
     expect(mock.osciladores.length).toBe(SONIDOS.alerta_barra.notas.length);
 
     tiempoActual += 400;
     // Baja aire por debajo de 15% -> critico_barra
-    manager.cambiarRecurso('aire', -90); // 100 -> 10
+    const aireAntes = manager.getSnapshot().aire;
+    manager.cambiarRecurso('aire', -(aireAntes - 10)); // -> 10
     expect(mock.osciladores.length).toBe(
       SONIDOS.alerta_barra.notas.length + SONIDOS.critico_barra.notas.length,
     );

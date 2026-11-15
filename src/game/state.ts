@@ -18,8 +18,8 @@ import {
   DEMO_RECURSOS,
   DRENAJE_BASE_POR_SEG,
   DURACION_JORNADA,
+  generarRecursosIniciales,
   MAX_JORNADAS,
-  RECURSOS_INICIALES,
 } from './balance';
 import { obtenerMultiplicadorJornada } from './clock';
 import {
@@ -289,7 +289,11 @@ export class GameStateManager {
     };
   }
 
-  private crearEstadoInicial(modo: ModoJuego, semanaId?: IdSemana): GameState {
+  private crearEstadoInicial(
+    modo: ModoJuego,
+    semanaId?: IdSemana,
+    recursosIniciales?: RecursosSnapshot,
+  ): GameState {
     const semanaActiva = semanaId
       ? obtenerSemanaPorId(semanaId).id
       : obtenerSemanaActiva().id;
@@ -323,14 +327,16 @@ export class GameStateManager {
       };
     }
 
+    const iniciales = recursosIniciales ?? generarRecursosIniciales();
+
     return {
       modo: 'semana',
       semanaId: semanaActiva,
       jornada: 1,
       segundos: 0,
-      aire: RECURSOS_INICIALES.aire,
-      energia: RECURSOS_INICIALES.energia,
-      escudo: RECURSOS_INICIALES.escudo,
+      aire: limitarRecurso(iniciales.aire),
+      energia: limitarRecurso(iniciales.energia),
+      escudo: limitarRecurso(iniciales.escudo),
       misionesHechas: [],
       misionesPerdidas: [],
       pausado: false,
@@ -423,28 +429,35 @@ export class GameStateManager {
     }
   }
 
-  public reset(): void {
-    this.iniciarModo('semana');
+  public reset(recursosIniciales?: RecursosSnapshot): void {
+    this.iniciarModo('semana', undefined, recursosIniciales);
   }
 
-  public iniciarSemana(semanaId?: IdSemana): void {
+  public iniciarSemana(
+    semanaId?: IdSemana,
+    recursosIniciales?: RecursosSnapshot,
+  ): void {
     if (semanaId) {
       updateAjustes({ ultimaSemana: obtenerSemanaPorId(semanaId).id });
     }
-    this.iniciarModo('semana', semanaId);
+    this.iniciarModo('semana', semanaId, recursosIniciales);
   }
 
   public iniciarDemo(semanaId?: IdSemana): void {
     this.iniciarModo('demo', semanaId);
   }
 
-  private iniciarModo(modo: ModoJuego, semanaId?: IdSemana): void {
+  private iniciarModo(
+    modo: ModoJuego,
+    semanaId?: IdSemana,
+    recursosIniciales?: RecursosSnapshot,
+  ): void {
     const anteriores: RecursosSnapshot = {
       aire: this.state.aire,
       energia: this.state.energia,
       escudo: this.state.escudo,
     };
-    this.state = this.crearEstadoInicial(modo, semanaId);
+    this.state = this.crearEstadoInicial(modo, semanaId, recursosIniciales);
     this.inicioJornada = this.capturarInicioJornada();
 
     this.emitirCambiosRecursos(anteriores);
