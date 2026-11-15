@@ -6,6 +6,7 @@ import {
   estadoMascota,
   type WidgetMascota,
 } from '../art/mascota';
+import { audioEngine } from '../audio/audio';
 import { GAME_WIDTH, HUD_H, SCENE_KEYS } from '../config';
 import { ControladorEfectosHUD, evaluarEfectosActivos } from '../fx/efectos';
 import {
@@ -20,13 +21,14 @@ import {
   obtenerTiempoRestante,
 } from '../game/clock';
 import { gameState, type ModoJuego, type RecursoNombre } from '../game/state';
-import { getAjustes, suscribirAjustes } from '../game/settings';
+import { getAjustes, suscribirAjustes, updateAjustes } from '../game/settings';
 import { t } from '../i18n';
 import {
   dibujarIconoAire,
   dibujarIconoEnergia,
   dibujarIconoEscudo,
   dibujarIconoPausa,
+  dibujarIconoSonido,
   dibujarIconoTanque,
 } from '../ui/icons';
 import { desregistrarObjetivoUI, registrarObjetivoUI } from '../ui/targets';
@@ -63,6 +65,10 @@ export class HUDScene extends Phaser.Scene {
   private textoReloj: Phaser.GameObjects.Text | null = null;
   private arcoReloj: Phaser.GameObjects.Graphics | null = null;
   private fondoBotonPausa: Phaser.GameObjects.Graphics | null = null;
+  private fondoBotonSonido: Phaser.GameObjects.Graphics | null = null;
+  private iconoBotonSonido: Phaser.GameObjects.Graphics | null = null;
+  private textoBotonSonido: Phaser.GameObjects.Text | null = null;
+  private sonidoHover = false;
   private indicadorAguaBaja: Phaser.GameObjects.Container | null = null;
   private textoAguaBaja: Phaser.GameObjects.Text | null = null;
   private widgetLuni: WidgetMascota | null = null;
@@ -79,12 +85,14 @@ export class HUDScene extends Phaser.Scene {
     this.desuscripciones = [];
     this.ultimoTextoTiempo = '';
     this.ultimaFraccionReloj = -1;
+    this.sonidoHover = false;
 
     this.dibujarFondoHud();
     this.crearBarras();
     this.crearReloj();
     this.crearIndicadorAguaBaja();
     this.crearMascotaHud();
+    this.crearBotonSonido();
     this.crearBotonPausa();
     this.efectosHud = new ControladorEfectosHUD(this);
     this.configurarAtajosPausa();
@@ -304,12 +312,12 @@ export class HUDScene extends Phaser.Scene {
 
   private crearMascotaHud(): void {
     this.widgetLuni = crearWidgetMascota(this, {
-      x: 958,
+      x: 956,
       y: HUD_H / 2 + 2,
-      escala: 0.72,
+      escala: 0.7,
       estadoInicial: 'contenta',
       mostrarFrase: true,
-      anchoFrase: 202,
+      anchoFrase: 146,
       alineacionFrase: 'derecha',
       contexto: 'hud',
     });
@@ -335,6 +343,110 @@ export class HUDScene extends Phaser.Scene {
     }
   }
 
+  private crearBotonSonido(): void {
+    const tam = 56;
+    const cx =
+      GAME_WIDTH -
+      HUD_METRICAS.botonPausaMargenDer -
+      HUD_METRICAS.botonPausaTamano -
+      12 -
+      tam / 2;
+    const cy = HUD_H / 2;
+
+    this.fondoBotonSonido = this.add.graphics();
+    this.iconoBotonSonido = this.add.graphics();
+    this.textoBotonSonido = this.add
+      .text(cx, cy + 16, '', {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: COLORES_HEX.textoPrincipal,
+      })
+      .setOrigin(0.5);
+
+    this.actualizarBotonSonidoVisual(cx, cy, tam);
+
+    const zona = this.add
+      .zone(cx, cy, tam, tam)
+      .setInteractive({ useHandCursor: true });
+
+    zona.on('pointerover', () => {
+      this.sonidoHover = true;
+      this.actualizarBotonSonidoVisual(cx, cy, tam);
+    });
+    zona.on('pointerout', () => {
+      this.sonidoHover = false;
+      this.actualizarBotonSonidoVisual(cx, cy, tam);
+    });
+    zona.on('pointerdown', () => {
+      audioEngine.registrarGestoUsuario();
+      const nuevo = updateAjustes({ sonido: !getAjustes().sonido });
+      if (nuevo.sonido) {
+        audioEngine.reproducir('clic');
+      }
+      this.actualizarBotonSonidoVisual(cx, cy, tam);
+    });
+  }
+
+  private actualizarBotonSonidoVisual(
+    cx = GAME_WIDTH -
+      HUD_METRICAS.botonPausaMargenDer -
+      HUD_METRICAS.botonPausaTamano -
+      12 -
+      28,
+    cy = HUD_H / 2,
+    tam = 56,
+  ): void {
+    if (
+      !this.fondoBotonSonido ||
+      !this.iconoBotonSonido ||
+      !this.textoBotonSonido
+    ) {
+      return;
+    }
+    const activo = getAjustes().sonido;
+    this.fondoBotonSonido.clear();
+    this.fondoBotonSonido.fillStyle(
+      this.sonidoHover ? COLORES.botonHover : COLORES.botonFondo,
+      1,
+    );
+    this.fondoBotonSonido.fillRoundedRect(
+      cx - tam / 2,
+      cy - tam / 2,
+      tam,
+      tam,
+      ESPACIADO.radioBoton,
+    );
+    this.fondoBotonSonido.lineStyle(
+      2,
+      activo ? COLORES.bordePanel : COLORES.aviso,
+      1,
+    );
+    this.fondoBotonSonido.strokeRoundedRect(
+      cx - tam / 2,
+      cy - tam / 2,
+      tam,
+      tam,
+      ESPACIADO.radioBoton,
+    );
+
+    this.iconoBotonSonido.clear();
+    dibujarIconoSonido(
+      this.iconoBotonSonido,
+      cx,
+      cy - 7,
+      22,
+      activo ? COLORES.aire : COLORES.textoSecundario,
+      activo,
+    );
+    this.textoBotonSonido.setText(
+      activo ? t('sonido.onCorto') : t('sonido.offCorto'),
+    );
+    this.textoBotonSonido.setColor(
+      activo ? COLORES_HEX.textoPrincipal : COLORES_HEX.aviso,
+    );
+  }
+
   private crearBotonPausa(): void {
     const tam = HUD_METRICAS.botonPausaTamano;
     const cx = GAME_WIDTH - HUD_METRICAS.botonPausaMargenDer - tam / 2;
@@ -357,6 +469,7 @@ export class HUDScene extends Phaser.Scene {
       this.dibujarFondoBotonPausa(cx, cy, tam, false);
     });
     zonaTactil.on('pointerdown', () => {
+      audioEngine.reproducir('clic');
       const snap = gameState.getSnapshot();
       if (snap.estado === 'jugando') {
         gameState.setPausa(true);
@@ -481,6 +594,7 @@ export class HUDScene extends Phaser.Scene {
         );
         this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
         this.textoAguaBaja?.setText(`! ${t('hud.aguaBaja')}`);
+        this.actualizarBotonSonidoVisual();
         this.actualizarEstadoVisualHud();
         if (this.barras) {
           for (const key of ['aire', 'energia', 'escudo'] as const) {

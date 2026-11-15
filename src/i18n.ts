@@ -122,6 +122,7 @@ const textosEs = {
     tagPerdida: '[PERDIDA]',
     tagPendiente: '[PEND]',
     atributosMision: '{tag} {id}',
+    perfEtiqueta: 'FPS: {fps} · Partículas: {particulas}',
   },
   misiones: {
     panelTitulo: 'Misiones activas',
@@ -451,6 +452,17 @@ const textosEs = {
     evacuacionSubtitulo: 'La cápsula se aleja con toda la tripulación.',
     saltarHint: 'Toca o pulsa Enter para continuar',
   },
+  sonido: {
+    etiqueta: 'Sonido',
+    desc: 'Tonos suaves sin música continua.',
+    on: 'Sonido: Sí',
+    off: 'Sonido: No',
+    onCorto: 'Sí',
+    offCorto: 'No',
+    volumen: 'Volumen: {valor}%',
+    bajarVolumen: '- Vol',
+    subirVolumen: '+ Vol',
+  },
 } as const;
 
 const textosEn: EstructuraTextos<typeof textosEs> = {
@@ -563,6 +575,7 @@ const textosEn: EstructuraTextos<typeof textosEs> = {
     tagPerdida: '[LOST]',
     tagPendiente: '[TODO]',
     atributosMision: '{tag} {id}',
+    perfEtiqueta: 'FPS: {fps} · Particles: {particulas}',
   },
   misiones: {
     panelTitulo: 'Active missions',
@@ -891,6 +904,17 @@ const textosEn: EstructuraTextos<typeof textosEs> = {
     evacuacionTitulo: 'Safe evacuation',
     evacuacionSubtitulo: 'The escape pod drifts away safely.',
     saltarHint: 'Tap or press Enter to continue',
+  },
+  sonido: {
+    etiqueta: 'Sound',
+    desc: 'Gentle tones with no looping music.',
+    on: 'Sound: On',
+    off: 'Sound: Off',
+    onCorto: 'On',
+    offCorto: 'Off',
+    volumen: 'Volume: {valor}%',
+    bajarVolumen: '- Vol',
+    subirVolumen: '+ Vol',
   },
 };
 

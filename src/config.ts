@@ -32,6 +32,8 @@ export const DEBUG_QUERY_PARAM = 'debug';
 export const DEBUG_QUERY_VALUE = '1';
 export const DEMO_QUERY_PARAM = 'demo';
 export const DEMO_QUERY_VALUE = '1';
+export const PERF_QUERY_PARAM = 'perf';
+export const PERF_QUERY_VALUE = '1';
 
 export function isDebugEnabled(): boolean {
   if (typeof window === 'undefined') {
@@ -47,4 +49,12 @@ export function isDemoEnabled(): boolean {
   }
   const params = new URLSearchParams(window.location.search);
   return params.get(DEMO_QUERY_PARAM) === DEMO_QUERY_VALUE;
+}
+
+export function isPerfEnabled(): boolean {
+  if (!isDebugEnabled() || typeof window === 'undefined') {
+    return false;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return params.get(PERF_QUERY_PARAM) === PERF_QUERY_VALUE;
 }

@@ -27,9 +27,25 @@ function quitarComentarios(codigo: string): string {
 }
 
 describe('Política cero red en tiempo de ejecución (src/)', () => {
-  it('no contiene llamadas fetch, api_key ni importaciones de archivos .raw.json en src/', () => {
+  it('no contiene llamadas fetch, XMLHttpRequest, api_key, .raw.json ni URLs de assets externos en src/ (incluyendo audio/, fx/, art/)', () => {
     const archivos = recolectarArchivos(RAIZ_SRC);
     expect(archivos.length).toBeGreaterThan(10);
+
+    const archivosConAudioFxArt = archivos.filter((ruta) => {
+      const rel = relative(process.cwd(), ruta).replace(/\\/g, '/');
+      return (
+        rel.startsWith('src/audio/') ||
+        rel.startsWith('src/fx/') ||
+        rel.startsWith('src/art/')
+      );
+    });
+    expect(archivosConAudioFxArt.length).toBeGreaterThanOrEqual(6);
+
+    const archivosConUrlsDocPermitidas = new Set([
+      'src/data/fuentes.ts',
+      'src/data/creditos.ts',
+      'src/i18n.ts',
+    ]);
 
     for (const ruta of archivos) {
       const rel = relative(process.cwd(), ruta).replace(/\\/g, '/');
@@ -40,6 +56,14 @@ describe('Política cero red en tiempo de ejecución (src/)', () => {
       expect(contenidoSinComentarios, `${rel} no debe usar fetch(`).not.toMatch(
         /\bfetch\s*\(/,
       );
+      expect(
+        contenidoSinComentarios,
+        `${rel} no debe usar XMLHttpRequest`,
+      ).not.toContain('XMLHttpRequest');
+      expect(
+        contenidoSinComentarios,
+        `${rel} no debe usar navigator.sendBeacon`,
+      ).not.toContain('sendBeacon');
       expect(
         contenidoSinComentarios,
         `${rel} no debe contener api_key`,
@@ -56,6 +80,13 @@ describe('Política cero red en tiempo de ejecución (src/)', () => {
           contenidoSinComentarios,
           `${rel} no debe referenciar api.nasa.gov`,
         ).not.toContain('api.nasa.gov');
+      }
+
+      if (!archivosConUrlsDocPermitidas.has(rel)) {
+        expect(
+          contenidoSinComentarios,
+          `${rel} no debe contener URLs externas http(s)://`,
+        ).not.toMatch(/https?:\/\//i);
       }
     }
   });

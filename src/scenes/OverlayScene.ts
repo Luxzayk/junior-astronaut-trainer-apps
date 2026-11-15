@@ -1,13 +1,19 @@
 // Escena de superposiciones: pausa (con Ajustes/Glosario/Fuentes), fin de jornada (con chips de glosario), fin de demo y evacuación
 
 import Phaser from 'phaser';
+import { audioEngine } from '../audio/audio';
 import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
 import { MAX_JORNADAS } from '../game/balance';
 import {
   IDS_GLOSARIO_CIERRE,
   type IdTerminoGlosario,
 } from '../game/glosario';
-import { getAjustes, suscribirAjustes, type Idioma } from '../game/settings';
+import {
+  getAjustes,
+  suscribirAjustes,
+  updateAjustes,
+  type Idioma,
+} from '../game/settings';
 import { gameState, type GameState } from '../game/state';
 import { tutorialManager } from '../game/tutorial';
 import { t } from '../i18n';
@@ -21,6 +27,7 @@ import {
   dibujarIconoEnergia,
   dibujarIconoEscudo,
   dibujarIconoLobby,
+  dibujarIconoSonido,
 } from '../ui/icons';
 import {
   crearWidgetMascota,
@@ -208,7 +215,7 @@ export class OverlayScene extends Phaser.Scene {
       this.contenido.removeAll(true);
       this.dibujarPanel(
         OVERLAY_METRICAS.panelAncho,
-        448,
+        512,
         COLORES.bordePanel,
       );
       this.construirVistaPausa();
@@ -309,12 +316,13 @@ export class OverlayScene extends Phaser.Scene {
     }
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
-    const panelAlto = 448;
+    const panelAlto = 512;
     const top = cy - panelAlto / 2;
-    const textoGrande = getAjustes().textoGrande;
+    const ajustes = getAjustes();
+    const textoGrande = ajustes.textoGrande;
 
     const titulo = this.add
-      .text(cx, top + 48, t('overlays.pausaTitulo'), {
+      .text(cx, top + 46, t('overlays.pausaTitulo'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.titulo, textoGrande, 38)}px`,
         fontStyle: 'bold',
@@ -324,6 +332,13 @@ export class OverlayScene extends Phaser.Scene {
 
     const continuar = (): void => gameState.setPausa(false);
     const reiniciar = (): void => gameState.reiniciarJornadaActual();
+    const alternarSonido = (): void => {
+      audioEngine.registrarGestoUsuario();
+      const nuevo = updateAjustes({ sonido: !getAjustes().sonido });
+      if (nuevo.sonido) {
+        audioEngine.reproducir('clic');
+      }
+    };
     const abrirAjustes = (): void => this.abrirSubescenaPausa(SCENE_KEYS.ajustes);
     const abrirGlosario = (): void =>
       this.abrirSubescenaPausa(SCENE_KEYS.glosario);
@@ -334,9 +349,9 @@ export class OverlayScene extends Phaser.Scene {
     const btnContinuar = this.crearBoton(
       0,
       cx,
-      top + 118,
+      top + 114,
       360,
-      62,
+      60,
       t('overlays.continuar'),
       COLORES.aire,
       COLORES_HEX.botonTextoOscuro,
@@ -346,7 +361,7 @@ export class OverlayScene extends Phaser.Scene {
     const btnReiniciar = this.crearBoton(
       1,
       cx,
-      top + 194,
+      top + 186,
       360,
       58,
       t('overlays.reiniciarJornada'),
@@ -355,11 +370,22 @@ export class OverlayScene extends Phaser.Scene {
       reiniciar,
     );
 
+    const btnSonido = this.crearBotonSonidoPausa(
+      2,
+      cx,
+      top + 258,
+      360,
+      56,
+      ajustes.sonido,
+      textoGrande,
+      alternarSonido,
+    );
+
     const subW = 248;
     const subH = 56;
     const subGapX = 18;
-    const subRow1Y = top + 286;
-    const subRow2Y = top + 358;
+    const subRow1Y = top + 346;
+    const subRow2Y = top + 418;
     const subBotones: Array<{ etiqueta: string; accion: () => void }> = [
       { etiqueta: t('overlays.abrirAjustes'), accion: abrirAjustes },
       { etiqueta: t('overlays.abrirGlosario'), accion: abrirGlosario },
@@ -370,21 +396,28 @@ export class OverlayScene extends Phaser.Scene {
     const itemsFoco: ItemFoco[] = [
       {
         x: cx,
-        y: top + 118,
+        y: top + 114,
         ancho: 360,
-        alto: 62,
+        alto: 60,
         activar: continuar,
       },
       {
         x: cx,
-        y: top + 194,
+        y: top + 186,
         ancho: 360,
         alto: 58,
         activar: reiniciar,
       },
+      {
+        x: cx,
+        y: top + 258,
+        ancho: 360,
+        alto: 56,
+        activar: alternarSonido,
+      },
     ];
 
-    this.contenido.add([titulo, btnContinuar, btnReiniciar]);
+    this.contenido.add([titulo, btnContinuar, btnReiniciar, btnSonido]);
 
     subBotones.forEach((btn, idx) => {
       const col = idx % 2;
@@ -413,6 +446,69 @@ export class OverlayScene extends Phaser.Scene {
     });
 
     this.gestorFoco?.actualizarItems(itemsFoco);
+  }
+
+  private crearBotonSonidoPausa(
+    indice: number,
+    cx: number,
+    cy: number,
+    ancho: number,
+    alto: number,
+    activo: boolean,
+    textoGrande: boolean,
+    alPulsar: () => void,
+  ): Phaser.GameObjects.Container {
+    const fondo = this.add.graphics();
+    const dibujar = (hover: boolean): void => {
+      fondo.clear();
+      fondo.fillStyle(hover ? COLORES.botonHover : COLORES.botonFondo, 1);
+      fondo.fillRoundedRect(
+        -ancho / 2,
+        -alto / 2,
+        ancho,
+        alto,
+        ESPACIADO.radioBoton,
+      );
+      fondo.lineStyle(2, activo ? COLORES.aire : COLORES.aviso, 1);
+      fondo.strokeRoundedRect(
+        -ancho / 2,
+        -alto / 2,
+        ancho,
+        alto,
+        ESPACIADO.radioBoton,
+      );
+      dibujarIconoSonido(
+        fondo,
+        -ancho / 2 + 32,
+        0,
+        24,
+        activo ? COLORES.aire : COLORES.textoSecundario,
+        activo,
+      );
+    };
+    dibujar(false);
+
+    const texto = this.add
+      .text(12, 0, activo ? t('sonido.on') : t('sonido.off'), {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.boton, textoGrande, 24)}px`,
+        fontStyle: 'bold',
+        color: activo ? COLORES_HEX.textoPrincipal : COLORES_HEX.aviso,
+      })
+      .setOrigin(0.5);
+
+    const zona = this.add
+      .zone(0, 0, ancho, alto)
+      .setInteractive({ useHandCursor: true });
+
+    const contenedor = this.add.container(cx, cy, [fondo, texto, zona]);
+    zona.on('pointerover', () => {
+      dibujar(true);
+      this.gestorFoco?.sincronizarIndice(indice, false);
+    });
+    zona.on('pointerout', () => dibujar(false));
+    zona.on('pointerdown', alPulsar);
+    return contenedor;
   }
 
   private construirVistaFinDemo(snap: Readonly<GameState>): void {
@@ -1001,6 +1097,7 @@ export class OverlayScene extends Phaser.Scene {
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(0.98);
       }
+      audioEngine.reproducir('clic');
       alPulsar();
     });
 

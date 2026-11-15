@@ -6,7 +6,9 @@ import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/800.css';
 
 import Phaser from 'phaser';
+import { audioEngine } from './audio/audio';
 import { GAME_HEIGHT, GAME_WIDTH } from './config';
+import { gameState } from './game/state';
 import { AjustesScene } from './scenes/AjustesScene';
 import { ApagonScene } from './scenes/ApagonScene';
 import { BaseScene } from './scenes/BaseScene';
@@ -39,6 +41,9 @@ async function cargarFuentes(): Promise<void> {
 }
 
 async function iniciarJuego(): Promise<void> {
+  audioEngine.inicializar();
+  audioEngine.conectarEventosJuego(gameState);
+
   await cargarFuentes();
 
   const config: Phaser.Types.Core.GameConfig = {

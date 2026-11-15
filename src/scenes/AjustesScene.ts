@@ -1,6 +1,7 @@
 // Escena de ajustes accesibles: idioma, texto grande, movimiento reducido y tutorial
 
 import Phaser from 'phaser';
+import { audioEngine } from '../audio/audio';
 import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
 import {
   getAjustes,
@@ -12,6 +13,7 @@ import { crearGestorFoco, type GestorFoco, type ItemFoco } from '../ui/focus';
 import {
   dibujarIconoMisionActiva,
   dibujarIconoMisionLista,
+  dibujarIconoSonido,
 } from '../ui/icons';
 import {
   COLORES,
@@ -49,7 +51,7 @@ export class AjustesScene extends Phaser.Scene {
     const textoGrande = ajustes.textoGrande;
 
     const panelW = 880;
-    const panelH = 604;
+    const panelH = 684;
     const left = cx - panelW / 2;
     const top = cy - panelH / 2;
 
@@ -69,7 +71,7 @@ export class AjustesScene extends Phaser.Scene {
     panel.strokeRoundedRect(left, top, panelW, panelH, ESPACIADO.radioPanel);
 
     this.add
-      .text(cx, top + 46, t('ajustes.titulo'), {
+      .text(cx, top + 40, t('ajustes.titulo'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.titulo, textoGrande, 38)}px`,
         fontStyle: 'bold',
@@ -78,7 +80,7 @@ export class AjustesScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, top + 86, t('ajustes.subtitulo'), {
+      .text(cx, top + 78, t('ajustes.subtitulo'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.subtitulo, textoGrande, 22)}px`,
         fontStyle: 'normal',
@@ -107,8 +109,8 @@ export class AjustesScene extends Phaser.Scene {
     const descX = left + 40;
 
     // Fila 1: Idioma (ES / EN)
-    const fila1Y = top + 154;
-    this.dibujarFilaBase(left + 26, fila1Y - 40, panelW - 52, 80);
+    const fila1Y = top + 140;
+    this.dibujarFilaBase(left + 26, fila1Y - 38, panelW - 52, 76);
     this.add
       .text(labelX, fila1Y, t('ajustes.idiomaEtiqueta'), {
         fontFamily: FUENTE_FAMILIA,
@@ -174,8 +176,8 @@ export class AjustesScene extends Phaser.Scene {
     });
 
     // Fila 2: Texto grande (x1.25)
-    const fila2Y = top + 252;
-    this.dibujarFilaBase(left + 26, fila2Y - 42, panelW - 52, 84);
+    const fila2Y = top + 230;
+    this.dibujarFilaBase(left + 26, fila2Y - 40, panelW - 52, 80);
     this.add
       .text(labelX, fila2Y - 14, t('ajustes.textoGrandeEtiqueta'), {
         fontFamily: FUENTE_FAMILIA,
@@ -217,8 +219,8 @@ export class AjustesScene extends Phaser.Scene {
     });
 
     // Fila 3: Movimiento reducido
-    const fila3Y = top + 352;
-    this.dibujarFilaBase(left + 26, fila3Y - 42, panelW - 52, 84);
+    const fila3Y = top + 322;
+    this.dibujarFilaBase(left + 26, fila3Y - 40, panelW - 52, 80);
     this.add
       .text(labelX, fila3Y - 14, t('ajustes.movimientoReducidoEtiqueta'), {
         fontFamily: FUENTE_FAMILIA,
@@ -259,10 +261,135 @@ export class AjustesScene extends Phaser.Scene {
       activar: alternarMovimiento,
     });
 
-    // Fila 4: Ver el tutorial otra vez
-    const fila4Y = top + 452;
+    // Fila 4: Sonido y Volumen
+    const fila4Y = top + 416;
+    this.dibujarFilaBase(left + 26, fila4Y - 42, panelW - 52, 84);
+    const iconoSonidoG = this.add.graphics();
+    dibujarIconoSonido(
+      iconoSonidoG,
+      labelX + 12,
+      fila4Y - 14,
+      22,
+      ajustes.sonido ? COLORES.aire : COLORES.textoSecundario,
+      ajustes.sonido,
+    );
+    this.add
+      .text(labelX + 34, fila4Y - 14, t('sonido.etiqueta'), {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${escalarTamanoTexto(21, textoGrande, 25)}px`,
+        fontStyle: 'bold',
+        color: COLORES_HEX.textoPrincipal,
+      })
+      .setOrigin(0, 0.5);
+    this.add
+      .text(
+        descX,
+        fila4Y + 18,
+        t('sonido.volumen', { valor: Math.round(ajustes.volumen * 100) }),
+        {
+          fontFamily: FUENTE_FAMILIA,
+          fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20)}px`,
+          fontStyle: 'normal',
+          color: COLORES_HEX.textoSecundario,
+        },
+      )
+      .setOrigin(0, 0.5);
+
+    const btnVolMenosX = left + panelW - 350;
+    const btnVolMasX = left + panelW - 252;
+    const toggleSonidoX = left + panelW - 118;
+
+    const cambiarVolumen = (delta: number): void => {
+      audioEngine.registrarGestoUsuario();
+      const actual = getAjustes();
+      const siguienteVol = Math.max(
+        0,
+        Math.min(1, Math.round((actual.volumen + delta) * 4) / 4),
+      );
+      updateAjustes({
+        volumen: siguienteVol,
+        sonido: siguienteVol > 0 ? actual.sonido : false,
+      });
+      if (siguienteVol > 0 && actual.sonido) {
+        audioEngine.reproducir('clic');
+      }
+      recargar(this.tutorialReiniciado);
+    };
+
+    this.crearBotonSimple(
+      itemsFoco.length,
+      btnVolMenosX,
+      fila4Y,
+      86,
+      56,
+      t('sonido.bajarVolumen'),
+      COLORES.botonFondo,
+      COLORES_HEX.textoPrincipal,
+      textoGrande,
+      () => cambiarVolumen(-0.25),
+    );
+    itemsFoco.push({
+      x: btnVolMenosX,
+      y: fila4Y,
+      ancho: 86,
+      alto: 56,
+      activar: () => cambiarVolumen(-0.25),
+    });
+
+    this.crearBotonSimple(
+      itemsFoco.length,
+      btnVolMasX,
+      fila4Y,
+      86,
+      56,
+      t('sonido.subirVolumen'),
+      COLORES.botonFondo,
+      COLORES_HEX.textoPrincipal,
+      textoGrande,
+      () => cambiarVolumen(0.25),
+    );
+    itemsFoco.push({
+      x: btnVolMasX,
+      y: fila4Y,
+      ancho: 86,
+      alto: 56,
+      activar: () => cambiarVolumen(0.25),
+    });
+
+    const alternarSonido = (): void => {
+      audioEngine.registrarGestoUsuario();
+      const actual = getAjustes();
+      const nuevoActivo = !actual.sonido;
+      const volumenNuevo =
+        nuevoActivo && actual.volumen <= 0 ? 0.5 : actual.volumen;
+      updateAjustes({ sonido: nuevoActivo, volumen: volumenNuevo });
+      if (nuevoActivo) {
+        audioEngine.reproducir('clic');
+      }
+      recargar(this.tutorialReiniciado);
+    };
+    this.crearBotonEstado(
+      itemsFoco.length,
+      toggleSonidoX,
+      fila4Y,
+      146,
+      56,
+      ajustes.sonido,
+      textoGrande,
+      alternarSonido,
+    );
+    itemsFoco.push({
+      x: toggleSonidoX,
+      y: fila4Y,
+      ancho: 146,
+      alto: 56,
+      activar: alternarSonido,
+    });
+
+    // Fila 5: Ver el tutorial otra vez
+    const fila5Y = top + 516;
     const btnTutW = 360;
-    const btnTutH = 58;
+    const btnTutH = 56;
     const accionReiniciarTut = (): void => {
       updateAjustes({ tutorialVisto: false });
       recargar(true);
@@ -270,7 +397,7 @@ export class AjustesScene extends Phaser.Scene {
     this.crearBotonSimple(
       itemsFoco.length,
       cx,
-      fila4Y,
+      fila5Y,
       btnTutW,
       btnTutH,
       t('ajustes.reiniciarTutorial'),
@@ -281,7 +408,7 @@ export class AjustesScene extends Phaser.Scene {
     );
     itemsFoco.push({
       x: cx,
-      y: fila4Y,
+      y: fila5Y,
       ancho: btnTutW,
       alto: btnTutH,
       activar: accionReiniciarTut,
@@ -289,7 +416,7 @@ export class AjustesScene extends Phaser.Scene {
 
     if (this.tutorialReiniciado) {
       this.add
-        .text(cx, fila4Y + 42, t('ajustes.tutorialReiniciado'), {
+        .text(cx, fila5Y + 42, t('ajustes.tutorialReiniciado'), {
           fontFamily: FUENTE_FAMILIA,
           fontSize: `${TAMANOS_TEXTO.minimo}px`,
           fontStyle: 'bold',
@@ -298,8 +425,8 @@ export class AjustesScene extends Phaser.Scene {
         .setOrigin(0.5);
     }
 
-    // Fila 5: Restablecer + Volver
-    const pieY = top + panelH - 52;
+    // Pie: Restablecer + Volver
+    const pieY = top + panelH - 50;
     const btnResetX = cx - 170;
     const btnVolverX = cx + 170;
 
@@ -547,7 +674,10 @@ export class AjustesScene extends Phaser.Scene {
       dibujar(false);
       contenedor.setScale(1);
     });
-    zona.on('pointerdown', alPulsar);
+    zona.on('pointerdown', () => {
+      audioEngine.reproducir('clic');
+      alPulsar();
+    });
   }
 
   private limpiar(): void {

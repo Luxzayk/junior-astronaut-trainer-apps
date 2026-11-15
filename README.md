@@ -2,25 +2,25 @@
 
 Juego educativo 2D (vista cenital) para niños de 7 a 12 años diseñado para el reto **Entrenador de misiones para astronautas junior** (NASA Space Apps 2026), construido con **Vite + TypeScript (`strict: true`) + Phaser 3 + Vitest**.
 
-## Cómo ejecutar
+## 1. Cómo jugar
 
 ```bash
 npm install
 npm run dev      # Abre el servidor de desarrollo en http://localhost:3000
 npm run build    # Compila el sitio estático en dist/ (base: './')
+npm run check    # Audita dist/ (JS gzip <= 1.2 MB y política sin red/URLs)
 npm run preview  # Previsualiza la compilación estática
-npm test         # Ejecuta las pruebas unitarias y la simulación con Vitest
+npm test         # Ejecuta todas las pruebas unitarias y la simulación con Vitest
 npm run lint     # Verifica tipos con TypeScript strict (tsc --noEmit)
 ```
 
 ### Modos de entrada por URL
-- **Juego normal**: `/` abre `MenuScene` con los botones **Jugar** (inicia la semana de 5 jornadas) y **Demo rápida (4 min)** (o `?demo=1`).
+- **Juego normal**: `/` abre `MenuScene` con **Jugar la semana** (selector de 3 semanas de 5 jornadas), **Demo de 4 minutos**, **Glosario**, **Fuentes**, **Ajustes**, **Créditos**, selector rápido **ES / EN** y botón rápido de **Sonido**.
 - **Modo Demo (`?demo=1`)**: inicia directo en la **Jornada 3** (`150s`), con recursos iniciales `{ aire: 70, energia: 65, escudo: 80 }` y el evento de fulguración solar disparando a los `60s`.
-- **Modo Debug (`?debug=1`)**: activa atajos de teclado y el panel de inspección (sin `?debug=1`, no existe ningún atajo ni overlay de debug en ejecución).
+- **Modo Debug (`?debug=1`)** y **Rendimiento (`?debug=1&perf=1`)**: activan atajos de inspección y el contador en vivo de FPS y partículas (sin `?debug=1` no existen atajos ni overlays de debug).
 
-## Flujo de juego (5 jornadas completas)
-
-1. **Menú y misiones activas**: cada jornada publica entre 1 y 2 misiones principales con estación y minijuego asignados. En el mapa se muestran el panel de misiones pendientes y el marcador en la estación activa.
+### Flujo de juego (5 jornadas completas)
+1. **Menú y misiones activas**: cada jornada publica entre 1 y 2 misiones principales con estación y minijuego asignados. En el mapa se muestran el panel de misiones pendientes y el marcador en la estación activa. En la Jornada 1, si es la primera vez, arranca el tutorial interactivo de 7 pasos.
 2. **Tres minijuegos con registro común (`MINIGAME_REGISTRY`)**:
    - **Nodos (`energia`)**: circuito de cables (`4x3`) con rotación hasta conectar Entrada con Salida (costo de intento `-3%` Energía, límite `60s`, pista visual a los `10s`).
    - **Válvulas (`invernadero` / `tanque`)**: secuencia de válvulas A/B/C mientras sube el medidor de presión (`+2.5/s`, acierto `-15`, error `+18`, costo de intento `-2%` Energía, límite `45s`).
@@ -34,103 +34,47 @@ npm run lint     # Verifica tipos con TypeScript strict (tsc --noEmit)
    - **Jornada 3 (`90s`) — Fulguración solar (`FLR`)**: pausa la jornada y da a elegir **Refugiarte** (`-12` Energía y pierde las misiones pendientes de la jornada) o **Seguir trabajando** (`-25` Escudo).
    - **Jornada 4 (`70s`) — Apagón (`ApagonScene`)**: pausa y obliga a apagar uno de 3 módulos (**Soporte de vida** `-16` Aire, **Escudos** `-22` Escudo o **Invernadero** `-10` Energía y pierde misiones pendientes de Invernadero).
    - **Jornada 5 (`100s`) — Tormenta grande (`TORMENTA_GRANDE`)**: alerta mayor con decisión entre **Refugiarte** (`-15` Energía y pierde pendientes) o **Seguir trabajando** (`-35` Escudo).
-5. **Cierre de jornada**:
-   - **Completa**: todas las misiones normales hechas -> recarga `+20%` Energía.
-   - **Incompleta**: marca el módulo de la primera misión pendiente como **módulo dañado** (drenaje `x1.25` de ese recurso hasta completar una misión allí).
-   - **Refuerzo del Control de Misión**: tras `2` jornadas incompletas seguidas, envía un refuerzo único de `+15%` Energía y `+10%` Aire.
+5. **Cierre, Bitácora e Informe Final**:
+   - Secuencias animadas cortas y saltables (`src/fx/cierres.ts`) acompañadas por **Luni** (`src/art/mascota.ts`) y audio sintetizado suave (`src/audio/audio.ts`).
+   - Al completar la Jornada 5 o sufrir una evacuación (`Aire <= 0%`) en modo semana se abre `InformeScene` con el rango obtenido (`Comandante`, `Especialista`, `Cadete` o `Astronauta en entrenamiento`), bitácora de decisiones difíciles, datos usados, nota opcional de OSDR y botón para copiar resultado.
 
-## Cómo editar jornadas, misiones y eventos (`src/game/jornadas.ts`)
+### Audio, efectos y accesibilidad
+- **Audio sintetizado con WebAudio (`src/audio/audio.ts`, `src/audio/sonidos.ts`)**: cero archivos `.mp3/.ogg` ni música continua. Se inicializa de forma diferida tras el primer gesto del usuario (`pointerdown`/`keydown`), limita a **4 voces simultáneas**, aplica enfriamiento de **150 ms** entre alertas idénticas y falla en silencio si `AudioContext` no existe. Botón de silencio accesible (`>= 56px`) en Menú, HUD, Pausa y Ajustes (con control de volumen).
+- **Accesibilidad persistente (`src/game/settings.ts`, `contrast.ts`, `focus.ts`, `targets.ts`)**: idioma **ES/EN** instantáneo, **Texto grande (`x1.25`)**, **Movimiento reducido** (desactiva pulsos, temblores y partículas en movimiento dejando bordes estáticos y badge `'!'`), y navegación completa por teclado (`Tab`, flechas, `Enter`/`Space`, `Escape`).
 
-Todas las jornadas están declaradas en `JORNADAS` dentro de `src/game/jornadas.ts`. Para añadir o ajustar una misión o evento en una jornada (`1..5`):
-- **Misiones**: agrega o modifica entradas en `misiones` con `id`, `estacionId` (`'energia' | 'invernadero' | 'escudos' | 'tanque'`), `minijuego` (`'nodos' | 'valvulas' | 'escudo'`), `params` (`pasos`, `tiempoLimite`, y `paneles` para `escudo`), y `tipoEleccion` (`'envio_energia' | 'invernadero' | 'escudo_potencia'`).
-- **Eventos de jornada**: configura `evento` con `{ tipo: 'fuga', segundo, ventana }`, `{ tipo: 'clima', segundo, eventoJsonId }`, o `{ tipo: 'apagon', segundo }`.
-- La suite `tests/jornadas.test.ts` valida automáticamente que existan 5 jornadas, que toda estación y minijuego pertenezca al registro, que `pasos` no disminuya al avanzar de jornada y que ningún evento sea `null`.
+---
 
-## Datos locales curados de clima espacial (`src/data/eventos.json`) y 3 semanas
+## 2. Cómo se obtuvieron los datos
 
-El juego funciona **100 % sin conexión y sin llamadas de red en tiempo de ejecución** (`src/` no usa `fetch` ni importa archivos crudos). Existen **3 semanas seleccionables** (`semana-1`, `semana-2`, `semana-3` en `src/game/semanas.ts`) vinculadas a 6 eventos curados en `src/data/eventos.json` y expuestos a través de `src/data/eventosLoader.ts`.
+El juego funciona **100 % sin conexión y sin llamadas de red en tiempo de ejecución** (`src/` no usa `fetch`, `XMLHttpRequest` ni importa archivos crudos; verificado por `tests/no-red.test.ts` y `npm run check`).
 
-### 1. Cómo obtener datos reales de NASA DONKI (script offline)
+### Datos locales curados de NASA DONKI (`src/data/eventos.json`)
+1. Se definieron **3 semanas seleccionables** (`semana-1`, `semana-2`, `semana-3` en `src/game/semanas.ts`) vinculadas a 6 eventos curados en `src/data/eventos.json` y expuestos mediante `src/data/eventosLoader.ts`.
+2. Para consultar eventos reales del catálogo **NASA DONKI (FLR y SEP)** de forma manual y guardar trazabilidad offline:
+   - Edita las fechas reales (`YYYY-MM-DD`) de `SEMANAS` dentro de `scripts/fetch-donki.mjs`.
+   - Ejecuta manualmente desde terminal con tu clave personal:
+     ```bash
+     NASA_API_KEY=TU_CLAVE node scripts/fetch-donki.mjs
+     ```
+   - El script guarda `src/data/donki/semana-1.raw.json`, `semana-2.raw.json` y `semana-3.raw.json` con `consultadoEn`, `ventana`, `flr` y `sep`. **Nunca** se importan esos `*.raw.json` desde `src/`.
+3. **Sello honesto automático**: cada evento marcado con `"verificado": true` requiere `id`, `semana`, `jornada` (`3` o `5`), `tipo` (`'FLR'` o `'SEP'`), `fecha` ISO válida, `clase`, `nivel` (`'media'` o `'fuerte'`), `fuenteNombre`, `fuenteUrl`, `consultadoEn` y `textoNinos` (`es`/`en`). Si `"verificado": false` o falta algún campo, `eventosLoader.ts` asigna `esEjemplo: true` y la interfaz muestra **Dato de ejemplo / Sample data** en lugar de afirmar que es dato en vivo.
+4. **Datos opcionales de NASA OSDR (`src/data/osdr.json`, `osdrLoader.ts`)**: nota educativa complementaria de biología espacial curada localmente con el mismo sello honesto (`verificado: false` por defecto hasta revisión humana).
 
-Para consultar eventos reales del catálogo **NASA DONKI (FLR y SEP)** de forma manual y guardar archivos crudos para trazabilidad:
+---
 
-1. Edita las fechas reales (`YYYY-MM-DD`) de `SEMANAS` dentro de `scripts/fetch-donki.mjs`.
-2. Ejecuta manualmente desde terminal con tu clave personal (evita ejecutar `DEMO_KEY` en bucle):
-   ```bash
-   NASA_API_KEY=TU_CLAVE node scripts/fetch-donki.mjs
-   ```
-3. El script guarda `src/data/donki/semana-1.raw.json`, `semana-2.raw.json` y `semana-3.raw.json` con `consultadoEn`, `ventana`, `flr` y `sep`. **Nunca** se importan esos `*.raw.json` desde `src/`.
+## 3. Qué es balance de juego y qué es dato de la NASA
 
-### 2. Reglas de curaduría, campo `verificado` y restricción de nivel en Jornada 3
-
-- **Campos obligatorios para marcar `"verificado": true`**: cada entrada en `src/data/eventos.json` debe incluir `id`, `semana`, `jornada` (`3` o `5`), `tipo` (`'FLR'` o `'SEP'`), `fecha` ISO válida, `clase` (ej. `'M8.2'`), `nivel` (`'media'` o `'fuerte'`), `fuenteNombre`, `fuenteUrl` no vacía, `consultadoEn` (fecha de consulta), y `textoNinos` con `es` y `en` para niños de 7 a 12 años.
-- **Sello honesto automático**: si `"verificado": false` o falta/falla cualquiera de esos campos, `eventosLoader.ts` marca `esEjemplo: true` y la interfaz muestra el sello **Dato de ejemplo** / **Sample data**. Solo cuando todos los campos son válidos y `"verificado": true`, se muestra **Datos de archivo · consultado el `<fecha>`**.
-- **Regla orientativa de nivel**: clase `M` -> `'media'`; clase `X` o tormenta `SEP` intensa -> `'fuerte'`.
-- **Restricción calibrada en Jornada 3**: en la simulación combinatoria, un evento `'fuerte'` en Jornada 3 baja el mínimo de Energía de `perfecto` a `8.1%` (`< 10%`). Para mantener los valores calibrados de `src/game/balance.ts` sin alterarlos, `eventosLoader.ts` restringe **Jornada 3 únicamente a nivel `'media'`** (si un JSON trae `'fuerte'` en J3, emite `console.warn` y lo ajusta a `'media'`), mientras **Jornada 5 admite `'media'` o `'fuerte'`**.
-
-### 3. Claves `EN` pendientes de revisión humana antes de publicación
-
-Todas las claves de `src/i18n.ts` tienen paridad exacta `ES`/`EN` y están probadas automáticamente por `tests/i18n.test.ts`; antes de publicar a producción se recomienda revisión humana pedagógica/nativa de los siguientes bloques `EN`:
-
-- `glosario.terminos.*` (`fulguracionTitulo/Desc`, `tormentaSepTitulo/Desc`, `escudoTitulo/Desc`, `invernaderoTitulo/Desc`, `moduloDanadoTitulo/Desc`, `aguaBajaTitulo/Desc`) y `glosario.chip*`.
-- `tutorial.*` (`objetivoTexto`, `moverseTexto`, `irEstacionTexto`, `usarTexto`, `minijuegoTexto`, `elegirTexto`, `cierreTexto`, `pasoDe`, `saltarTutorial`, `entendido`).
-- `eventoClima.*` (`flrTextoNinos`, `tormentaTextoNinos`, `fuenteVerificada`, `chipMisionesPerdidas`) y `sellos.*`.
-- `fuentes.*` y `semanas.*` (`donkiDesc`, `balanceAviso`, `reglaNivelTitulo`, descripciones de semana), además de los campos `textoNinos.en` de `src/data/eventos.json` al cargar eventos reales.
-
-## Tutorial interactivo y Accesibilidad (Fase 4)
-
-- **Tutorial interactivo de 7 pasos (`src/game/tutorial.ts` + `TutorialScene.ts`)**: se activa automáticamente solo en **Jornada 1** cuando `tutorialVisto === false` y el modo no es `demo` (puede reactivarse desde **Ajustes -> Ver tutorial otra vez**).
-  1. `objetivo` (pausa reloj, botón **Entendido**, destaca barras del HUD).
-  2. `moverse` (sin pausa, avanza al caminar `DISTANCIA_TUTORIAL = 80px`).
-  3. `ir_estacion` (sin pausa, flecha hacia estación **Energía**).
-  4. `usar` (sin pausa, destaca botón **Usar** / tecla `E`).
-  5. `minijuego` (sin pausa; si el jugador sale o falla permanece en el paso 5 para reintentar).
-  6. `elegir` (pausa reloj al abrir `ChoiceScene`, espera `eleccion:confirmada`).
-  7. `cierre` (se muestra al finalizar la Jornada 1, pausa reloj hasta pulsar **Entendido**).
-  El botón **Saltar tutorial** (`>= 56px` de alto) está siempre disponible y guarda `tutorialVisto: true`.
-- **Accesibilidad persistente (`src/game/settings.ts`, `contrast.ts`, `focus.ts`, `targets.ts`)**:
-  - Idioma **ES / EN** instantáneo (`localStorage`).
-  - **Texto grande (`x1.25`)** mediante `escalarTamanoTexto` con mínimo `18px` y `wordWrap`.
-  - **Movimiento reducido**: desactiva pulsos de barras críticas, temblores de error, rebotes de flecha y escalados hover/press, manteniendo bordes gruesos estáticos e iconos `'!'`.
-  - **Navegación completa por teclado** (`Tab`, flechas, `Enter`/`Space`, `Escape`) con anillo de foco `>= 3px` y contraste WCAG AA (`>= 4.5:1` en texto, `>= 3:1` en foco).
-
-## Modo debug (`?debug=1`)
-
-Agrega `?debug=1` a la URL (por ejemplo `http://localhost:3000/?debug=1`).
-
-| Tecla | Acción |
-| :--- | :--- |
-| `1`, `2`, `3` | Restar `10` a **Aire**, **Energía** o **Escudo** |
-| `Shift + 1`, `2`, `3` | Sumar `10` a **Aire**, **Energía** o **Escudo** |
-| `Alt + 1` .. `Alt + 5` | Saltar directo a la **Jornada 1..5** |
-| `J` | Saltar directo a la **Jornada 3** |
-| `V` | Disparar el evento de la jornada actual |
-| `B` | Activar / desactivar `aguaBaja` |
-| `M` | Completar la siguiente misión pendiente (o urgente) |
-| `X` | Fallar / marcar perdida la siguiente misión pendiente |
-| `O` | Mostrar / ocultar overlay de estado de misiones y módulo dañado |
-| `G` | Dañar / reparar manualmente el módulo de **Energía** |
-| `T` | Alternar velocidad del reloj y drenaje (`x1` / `x10`) |
-| `N` | Avanzar a la siguiente jornada |
-| `K` | Forzar fin de la jornada actual (evaluación de cierre) |
-| `L` | Forzar evacuación inmediata |
-
-## Simulación pura y tabla de balance calibrada
-
-El motor puro `src/game/simulation.ts` ejecuta la semana completa (`dt = 1s`, sin Phaser) reutilizando directamente `GameStateManager`, `jornadas.ts`, `missions.ts`, `closing.ts` y `events.ts`, aceptando `{ nivelJ3, nivelJ5 }`.
-
-### Cómo ejecutar la simulación
-
-```bash
-npm test   # Ejecuta tests/simulation.test.ts junto con toda la suite Vitest (74 tests)
-npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(simularSemana('perfecto', { nivelJ3: 'media', nivelJ5: 'fuerte' }));"
-```
+| Concepto | Clasificación | Detalle |
+| :--- | :--- | :--- |
+| Catálogo, fechas, clases (`M`/`X`) y ventanas de FLR y SEP | **Dato histórico de archivo (NASA DONKI)** | Solo cuando `"verificado": true` en `src/data/eventos.json`; en caso contrario se etiqueta explícitamente como **Dato de ejemplo**. |
+| Notas educativas opcionales sobre plantas/radiación | **Dato curado local (NASA OSDR)** | `src/data/osdr.json`, siempre acompañado de su sello de archivo o ejemplo. |
+| Porcentajes iniciales (`100%`), drenajes por segundo, costos de minijuegos, efectos de decisiones/eventos, duraciones (`180s`/`150s`), rangos y mascota **Luni** | **Balance y diseño educativo del juego** | Definidos en `src/game/balance.ts`, `src/art/mascota.ts` e `src/i18n.ts`; declarados expresamente como simulación educativa en `FuentesScene`, `MinigameScene`, `EventScene` e `InformeScene`. |
 
 ### Parámetros finales calibrados (`src/game/balance.ts`)
 
 | Constante | Valor calibrado | Nota |
 | :--- | :--- | :--- |
-| `DURACION_JORNADA` | `180` s | `5` jornadas |
+| `DURACION_JORNADA` | `180` s | `5` jornadas (`150` s en Demo) |
 | `DRENAJE_BASE_POR_SEG` | `{ aire: 0.26, energia: 0.11, escudo: 0.08 }` | Por segundo base (`x1.00`) |
 | `MULT_DRENAJE_POR_JORNADA` | `[0.70, 0.85, 1.00, 1.15, 1.25]` | J1..J5 |
 | `COSTO_INTENTO_MINIJUEGO` | `nodos: -3`, `valvulas: -2`, `escudo: -2` Energía | Al abrir estación |
@@ -141,11 +85,16 @@ npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(s
 | `ELECCIONES.invernadero` | `plenaLuz (+38 Aire, -8 E)` / `ahorro (+24 Aire, -3 E)` | No dominadas |
 | `ELECCIONES.escudo_potencia` | `potenciaAlta (+32 Esc, -8 E)` / `potenciaBaja (+20 Esc, -3 E)` | No dominadas |
 | `AGUA_BAJA_MULT_AIRE` | `x1.15` | Si expira la fuga de J2 (`40s`) |
-| `EFECTOS_EVENTO_FLR` (J3 `90s`) | `refugiarte (-12 E, pierde pendientes)` / `seguirTrabajando (-25 Esc)` | No dominadas |
+| `EFECTOS_EVENTO_FLR` (J3 `90s`) | `refugiarte (-12 E, pierde pendientes)` / `seguirTrabajando (-25 Esc)` | Restringido a `'media'` en J3 para conservar mínimo `>= 10%` |
 | `EFECTOS_APAGON` (J4 `70s`) | `soporteVida (-16 Aire)` / `escudos (-22 Esc)` / `invernadero (-10 E, pierde Inv.)` | No dominadas |
 | `EFECTOS_EVENTO_TORMENTA_GRANDE` (J5 `100s`) | `refugiarte (-15 E, pierde pendientes)` / `seguirTrabajando (-35 Esc)` | No dominadas |
+| `RANGOS` | `commander: 5`, `specialist: 4`, `cadet: 2`, `trainee: 0` | Basados en jornadas completas |
 
-### Resultados de simulación combinatoria (`4` combinaciones de nivel × `3` políticas)
+### Simulación combinatoria (`src/game/simulation.ts`)
+
+```bash
+npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(simularSemana('perfecto', { nivelJ3: 'media', nivelJ5: 'fuerte' }));"
+```
 
 | Combinación `(J3, J5)` | Política | Mínimo semana (`A / E / S`) | Final semana (`A / E / S`) | Resultado |
 | :--- | :--- | :--- | :--- | :--- |
@@ -155,96 +104,173 @@ npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(s
 | `(media, fuerte)` *(válida)* | `perfecto` | `13.7 / 13.1 / 20.7` | `13.7 / 33.0 / 20.7` | **Completa J5** (mín `>= 10`, final `< 40`) |
 | `(media, fuerte)` *(válida)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
 | `(media, fuerte)` *(válida)* | `pasivo` | `0.0 / 57.0 / 69.6` | `0.0 / 57.0 / 69.6` | **Evacuado en J3** (`<= 3`) |
-| `(fuerte, media)` *(bloqueada en J3)* | `perfecto` | `27.6 / 8.1 / 20.7` | `27.6 / 28.0 / 20.7` | **Energía mín `8.1 < 10`** (motivo de restringir J3 a `media`) |
-| `(fuerte, media)` *(bloqueada en J3)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | Evacuado en J5 |
-| `(fuerte, media)` *(bloqueada en J3)* | `pasivo` | `0.0 / 54.0 / 69.6` | `0.0 / 54.0 / 69.6` | Evacuado en J3 |
-| `(fuerte, fuerte)` *(bloqueada en J3)* | `perfecto` | `27.6 / 8.1 / 10.7` | `27.6 / 28.0 / 10.7` | **Energía mín `8.1 < 10`** (motivo de restringir J3 a `media`) |
-| `(fuerte, fuerte)` *(bloqueada en J3)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | Evacuado en J5 |
-| `(fuerte, fuerte)` *(bloqueada en J3)* | `pasivo` | `0.0 / 54.0 / 69.6` | `0.0 / 54.0 / 69.6` | Evacuado en J3 |
 
-## Estructura de carpetas
+---
+
+## 4. Uso de IA
+
+La declaración transparente y completa de asistencia por IA se encuentra en [`docs/uso-de-ia.md`](docs/uso-de-ia.md), junto con los materiales de entrega en [`docs/pagina-proyecto.md`](docs/pagina-proyecto.md) y [`docs/guion-demo.md`](docs/guion-demo.md). Ningún dato científico o histórico de la NASA fue inventado por IA: todos los registros locales sin verificación humana aparecen explícitamente marcados como **Dato de ejemplo / Sample data** hasta que un humano ejecute `scripts/fetch-donki.mjs` y valide cada campo.
+
+---
+
+## 5. Textos pendientes de revisión humana
+
+Todas las claves de `src/i18n.ts` tienen paridad exacta `ES`/`EN` (probada por `tests/i18n.test.ts`). Antes de publicar la versión final del hackathon se recomienda revisión humana de:
+
+- **Bloques `EN` para niños (7–12 años)**: `glosario.terminos.*`, `tutorial.*`, `eventoClima.*`, `sellos.*`, `fuentes.*`, `semanas.*`, `rangos.*`, `informe.*`, `mascota.*` y `cierres.*`.
+- **Resúmenes curados**: campos `textoNinos.es` / `textoNinos.en` de `src/data/eventos.json` y `src/data/osdr.json` al cargar eventos/registros reales verificados.
+- **Marcadores en `docs/` y `src/data/creditos.ts`**: completar los placeholders entre corchetes (`[nombre del equipo]`, `[año]`, `[licencia]`, `[herramientas usadas]`, `[qué revisó el equipo]`).
+
+---
+
+## 6. Tabla de debug y verificación manual
+
+Agrega `?debug=1` a la URL (`http://localhost:3000/?debug=1`) para activar atajos, o `?debug=1&perf=1` para mostrar también desde el arranque el contador de FPS y partículas vivas.
+
+### Tabla de atajos `?debug=1`
+
+| Tecla | Acción | Notas y colisiones conservadas |
+| :--- | :--- | :--- |
+| `1`, `2`, `3` | Restar `10` a **Aire**, **Energía** o **Escudo** | — |
+| `Shift + 1`, `2`, `3` | Sumar `10` a **Aire**, **Energía** o **Escudo** | — |
+| `Alt + 1` .. `Alt + 5` | Saltar directo a la **Jornada 1..5** | — |
+| `J` | Saltar directo a la **Jornada 3** | — |
+| `V` | Disparar el evento de la jornada actual | — |
+| `B` | Activar / desactivar `aguaBaja` | — |
+| `M` | Completar la siguiente misión pendiente (o urgente) | — |
+| `X` | Fallar / marcar perdida la siguiente misión pendiente | — |
+| `O` | Mostrar / ocultar overlay de estado de misiones | — |
+| `G` | Dañar / reparar manualmente el módulo de **Energía** | — |
+| `T` | Alternar velocidad del reloj y drenaje (`x1` / `x10`) | — |
+| `N` | Avanzar a la siguiente jornada | — |
+| `K` | Forzar fin de la jornada actual (evaluación natural) | — |
+| `C` | Forzar cierre de **jornada completa** | Completa misiones de la jornada y dispara cierre |
+| `Shift + C` | Forzar cierre de **jornada incompleta** | Marca misión pendiente/perdida y dispara cierre |
+| `I` | Abrir **Informe Final** con datos de prueba en `bitacora` | Salta a J5 completo y abre `InformeScene` |
+| `L` / `Shift + E` | Forzar **evacuación inmediata** | **Colisión conservada**: `E` sin `Shift` se mantiene para **Usar estación** |
+| `F` | Mostrar / ocultar contador de **FPS y partículas vivas** | También inicia visible con `?debug=1&perf=1` |
+| `Shift + S` | Activar / silenciar **Sonido** | **Colisión conservada**: `S` sin `Shift` se mantiene para caminar abajo (`WASD`) |
+
+### Checklist de verificación manual antes de entregar
+
+- [ ] **Móvil / pantalla táctil (`390x844` / `Fit`)**: caminar tocando salas, pulsar **Usar**, jugar Nodos, Válvulas y Escudo, y comprobar que todos los botones miden al menos `56px` sin solaparse.
+- [ ] **Modo Demo (`?demo=1`)**: completar en `< 4` minutos la Jornada 3, responder a la fulguración solar y validar la pantalla de fin de demo.
+- [ ] **Semana completa (5 jornadas)**: recorrer J1 (con tutorial), J2 (fuga urgente), J3 (FLR), J4 (apagón) y J5 (tormenta grande) hasta ver **Informe Final**, rango y copiar resultado.
+- [ ] **Cambio ES / EN en vivo**: alternar idioma en Menú, HUD, Ajustes, Glosario, Fuentes, Créditos e Informe Final comprobando `Texto grande (x1.25)`.
+- [ ] **Silencio y volumen**: silenciar desde Menú, HUD, Pausa y Ajustes, ajustar volumen y recargar verificando que la preferencia persiste en `localStorage` y que nunca suena sin clic/tecla previo.
+- [ ] **Movimiento reducido**: activarlo en Ajustes y confirmar en HUD/Base que no hay temblores, pulsos ni rayas móviles, manteniéndose los bordes estáticos e iconos `'!'`.
+- [ ] **Sin red (offline)**: construir con `npm run build && npm run check`, abrir con DevTools en modo *Offline* y confirmar que no falla ningún recurso ni aparecen llamadas de red.
+
+---
+
+## 7. Próximos pasos
+
+1. Ejecutar `NASA_API_KEY=... node scripts/fetch-donki.mjs` con fechas reales elegidas por el equipo, revisar los textos infantiles en `src/data/eventos.json` y activar `"verificado": true` únicamente en los registros validados.
+2. Completar los marcadores de equipo/licencia/herramientas en `src/data/creditos.ts`, `docs/uso-de-ia.md` y `docs/pagina-proyecto.md`.
+3. Realizar la revisión pedagógica y lingüística nativa de las claves `EN` listadas en la sección 5.
+4. Grabar el video de presentación siguiendo `docs/guion-demo.md` utilizando `?demo=1`.
+
+---
+
+## Estructura del proyecto
 
 ```text
+docs/
+  pagina-proyecto.md      // Ficha de entrega para NASA Space Apps
+  guion-demo.md           // Guion cronometrado de presentación (~3-4 min)
+  uso-de-ia.md            // Declaración transparente de herramientas IA y curaduría humana
 scripts/
   fetch-donki.mjs         // Script manual offline para consultar NASA DONKI (sin uso en runtime)
+  check-bundle.mjs        // Auditoría de dist/: tamaño total, JS gzip <= 1.2 MB y URLs externas
 src/
-  main.ts                 // Arranque: carga fuente Nunito local, registra escenas y crea Phaser.Game
-  config.ts               // Constantes de pantalla (1280x720, TILE=64, HUD_H=80) y claves de escena
+  main.ts                 // Arranque: inicializa audioEngine, carga Nunito local y crea Phaser.Game
+  config.ts               // Constantes de pantalla (1280x720, TILE=64, HUD_H=80) y flags ?debug/?demo/?perf
   i18n.ts                 // Sistema bilingüe ES/EN con interpolación y paridad estricta
+  art/
+    mascota.ts            // Mascota procedural "Luni" por estados + widget reutilizable con frase corta
+    texturas.ts           // Generación procedural en canvas de suelos, paredes, detalles y astronauta (4 frames)
+  audio/
+    sonidos.ts            // Definiciones puras de tonos WebAudio suaves (sin música continua)
+    audio.ts              // MotorAudio: inicio tras gesto, <= 4 voces, >= 150ms cooldown y respaldo silencioso
+  fx/
+    efectos.ts            // Evaluador puro y capas visuales por recurso + pool pre-asignado de partículas
+    cierres.ts            // Secuencias animadas saltables de cierre completo, incompleto y evacuación
   data/
-    donki/
-      README.md           // Política de archivo local sin importación en src/
+    donki/README.md       // Política de archivo local sin importación en src/
+    creditos.ts           // Metadatos de autoría, dependencias y licencias
     eventos.json          // Catálogo local de 6 eventos para las 3 semanas (verificado/ejemplo)
     eventosLoader.ts      // Cargador seguro, sello de fecha y restricción de nivel en J3
     fuentes.ts            // Metadatos honestos de fuentes de archivo, balance y tecnología
+    osdr.json             // Nota educativa opcional curada localmente
+    osdrLoader.ts         // Cargador seguro de datos OSDR con sello honesto
   game/
-    state.ts              // Estado único del juego y emisor tipado de eventos
-    balance.ts            // Números de balance calibrados y DISTANCIA_TUTORIAL
+    state.ts              // Estado único del juego, bitácora, helpers debug y emisor tipado de eventos
+    balance.ts            // Números de balance calibrados, RANGOS y constantes visuales/audio
+    bitacora.ts           // Registro puro de decisiones y causas principales de gasto
     clock.ts              // Lógica pura del reloj de jornada
     closing.ts            // Lógica pura de cierre de jornada y módulo dañado
     events.ts             // Lectura y helpers puros de eventos (Fuga, Clima, Apagón)
     glosario.ts           // Términos pedagógicos del glosario bilingüe
+    informe.ts            // Cálculo de Rango y resumen del Informe Final
     jornadas.ts           // Definición de las 5 jornadas, misiones y eventos
     missions.ts           // Lógica pura de misiones, costos, elecciones y formato
     map.ts                // Mapa ASCII, salas, estaciones, colisiones y utilidades
     pathfinding.ts        // BFS puro sobre la cuadrícula (4 direcciones)
     semanas.ts            // Definición y utilidades de las 3 semanas lunares
-    settings.ts           // Ajustes persistentes (idioma, textoGrande, movimientoReducido, tutorialVisto, ultimaSemana)
+    settings.ts           // Ajustes persistentes (idioma, textoGrande, movimientoReducido, sonido, volumen, tutorialVisto, ultimaSemana)
     simulation.ts         // Motor de simulación pura de 5 jornadas con niveles configurables
     tutorial.ts           // Máquina de estados pura del tutorial interactivo de 7 pasos
   minigames/
     types.ts              // Contratos e interfaz común MinigameView
     registry.ts           // Registro común de los 3 minijuegos
-    nodos.ts              // Lógica pura del minijuego Nodos (generación, rotación, BFS)
-    valvulas.ts           // Lógica pura del minijuego Válvulas (secuencia y medidor)
-    escudo.ts             // Lógica pura del minijuego Escudo (alineación de paneles)
-    views/
-      NodosView.ts        // Vista Phaser del minijuego Nodos (táctil y teclado)
-      ValvulasView.ts     // Vista Phaser del minijuego Válvulas (táctil y teclado)
-      EscudoView.ts       // Vista Phaser del minijuego Escudo (táctil y teclado)
+    nodos.ts / valvulas.ts / escudo.ts
+    views/                // NodosView.ts, ValvulasView.ts, EscudoView.ts
   scenes/
-    BootScene.ts          // Genera textura del astronauta y abre MenuScene o juego Demo
-    MenuScene.ts          // Menú inicial (Jugar semana, Demo 4 min, Glosario, Fuentes, Ajustes, ES/EN)
+    BootScene.ts          // Genera texturas procedurales y arranca Menú o Demo
+    MenuScene.ts          // Menú inicial con botón de Sonido, ES/EN, Semanas, Demo, Glosario, Fuentes, Ajustes y Créditos
     SemanaScene.ts        // Selector de 3 semanas lunares + botón Sorpresa
-    FuentesScene.ts       // Pantalla Fuentes y ciencia real (con scroll y sellos honestos)
+    FuentesScene.ts       // Pantalla Fuentes y ciencia real
     GlosarioScene.ts      // Pantalla Glosario lunar bilingüe
-    AjustesScene.ts       // Pantalla Ajustes (ES/EN, Texto grande, Movimiento reducido, Reiniciar tutorial)
-    BaseScene.ts          // Mapa, jugador, misiones, estaciones, fuga urgente, entrada y debug
-    HUDScene.ts           // Barras con iconos/estados, reloj en arco, botón pausa y Agua baja
-    MinigameScene.ts      // Host genérico para los minijuegos del registro (con salida Escape)
+    AjustesScene.ts       // Pantalla Ajustes (ES/EN, Texto grande, Movimiento reducido, Sonido/Volumen, Tutorial)
+    CreditosScene.ts      // Pantalla Créditos y licencias
+    BaseScene.ts          // Mapa, astronauta, misiones, efectos, contador ?perf=1 y atajos ?debug=1
+    HUDScene.ts           // Barras con iconos/estados, reloj en arco, Luni, botón Sonido y Pausa
+    MinigameScene.ts      // Host genérico para los minijuegos del registro
     ChoiceScene.ts        // Overlay de elecciones tácticas por estación con chips de costo
-    EventScene.ts         // Overlay de eventos de clima espacial (J3 FLR y J5 Tormenta) + chips glosario
+    EventScene.ts         // Overlay de eventos de clima espacial con Luni + chips glosario
     ApagonScene.ts        // Overlay del evento de apagón en Jornada 4
-    OverlayScene.ts       // Pantallas de pausa, cierre de jornada, fin de demo y evacuación
-    TutorialScene.ts      // Overlay interactivo del tutorial de 7 pasos con foco y flecha guía
+    OverlayScene.ts       // Pausa (con botón Sonido), secuencias animadas de cierre, fin de demo y evacuación
+    InformeScene.ts       // Informe Final con Rango, bitácora, causa principal y botón copiar
+    TutorialScene.ts      // Overlay interactivo del tutorial de 7 pasos
   ui/
-    contrast.ts           // Cálculo de luminancia relativa y validación WCAG AA de la paleta
+    contrast.ts           // Validación WCAG AA de la paleta
     focus.ts              // Gestor reutilizable de navegación por teclado y anillo >= 3px
-    glosarioModal.ts      // Modal de glosario reutilizable desde EventScene y OverlayScene
-    icons.ts              // Iconos vectoriales dibujados con Graphics
+    glosarioModal.ts      // Modal de glosario reutilizable
+    icons.ts              // Iconos vectoriales dibujados con Graphics (incluye sonido)
     targets.ts            // Registro de coordenadas de objetivos UI por nombre
     theme.ts              // Paleta visual, tipografías, escalado textoGrande y métricas de UI
 tests/
+  audio.test.ts           // Pruebas WebAudio: mute, tope 4 voces, cooldown 150ms y resiliencia
+  bitacora.test.ts        // Pruebas de registro y causa principal de gasto
   closing.test.ts         // Pruebas de cierre, módulo dañado, refuerzo, eventos y Demo
   contrast.test.ts        // Pruebas de contraste WCAG, escala textoGrande y targets UI
+  creditos.test.ts        // Pruebas de créditos y licencias
+  efectos.test.ts         // Pruebas puras de estados visuales y límites de partículas/temblor
   escudo.test.ts          // Pruebas de rotación, cobertura y resolución de Escudo
   eventos.test.ts         // Pruebas de eventosLoader, sello de archivo, restricción J3 y 3 semanas
   glosario.test.ts        // Pruebas de términos y cobertura ES/EN del glosario
   i18n.test.ts            // Pruebas de paridad de claves, placeholders e interpolación ES/EN
+  informe.test.ts         // Pruebas de cálculo de Rango y resumen final
   jornadas.test.ts        // Validación estructural de las 5 jornadas, pasos y elecciones
+  mascota.test.ts         // Pruebas puras de estados de ánimo de Luni
   missions.test.ts        // Pruebas de misiones, costos y flujo por estación
-  no-red.test.ts          // Verificación estática de cero llamadas de red e importaciones raw en src/
+  no-red.test.ts          // Verificación estática de cero red/fetch/URLs externas en src/
   nodos.test.ts           // Pruebas de generación, rotación y circuito de Nodos
+  osdr.test.ts            // Pruebas de cargador OSDR con sello honesto
   pathfinding.test.ts     // Pruebas de pathfinding BFS y colisiones lógicas
-  settings.test.ts        // Pruebas de persistencia y suscripción de ajustes
+  settings.test.ts        // Pruebas de persistencia y suscripción de ajustes (incluye sonido/volumen)
   simulation.test.ts      // Simulación matemática 4x3 y verificación de no-dominancia
   state.test.ts           // Pruebas del estado único, drenaje y pausa
   tutorial.test.ts        // Pruebas del tutorial interactivo de 7 pasos y reglas de pausa
   valvulas.test.ts        // Pruebas de secuencia, medidor y límites de Válvulas
 ```
-
-## Decisiones de diseño en puntos abiertos
-
-- **Reiniciar jornada (Pausa)**: reinicia el reloj de la jornada actual a `0`, restaura recursos y estado de cierre al inicio exacto de esa jornada y reposiciona al astronauta en el Lobby.
-- **Reintentar / Jugar de nuevo**: llama a `gameState.reset()` para volver a la jornada 1 con todos los recursos al 100%.
-- **Jornada 3 nivel `'media'`**: para preservar intactos los valores de `balance.ts` mientras se garantiza que toda semana válida cumpla los umbrales de calibración (`>= 10` en mínimos y `< 40` en mínimo final), Jornada 3 restringe los eventos curados a `'media'`.

@@ -1303,6 +1303,76 @@ export class GameStateManager {
       this.state.moduloDanado === estacionId ? null : estacionId;
     this.emit('estado:cambio', { estado: this.state.estado });
   }
+
+  public forzarFinJornadaDebug(completa: boolean): void {
+    if (this.state.estado === 'evacuacion') {
+      return;
+    }
+    const misiones = obtenerMisionesDeJornada(this.state.jornada);
+    if (completa) {
+      const hechas = new Set(this.state.misionesHechas);
+      for (const m of misiones) {
+        hechas.add(m.id);
+      }
+      this.state.misionesHechas = [...hechas];
+      this.state.misionesPerdidas = this.state.misionesPerdidas.filter(
+        (id) => !misiones.some((m) => m.id === id),
+      );
+      this.state.misionUrgente = null;
+    } else if (misiones.length > 0) {
+      const idsJornada = new Set(misiones.map((m) => m.id));
+      this.state.misionesHechas = this.state.misionesHechas.filter(
+        (id) => !idsJornada.has(id),
+      );
+      this.state.misionesPerdidas = [
+        ...new Set([
+          ...this.state.misionesPerdidas,
+          misiones[0].id,
+        ]),
+      ];
+    }
+    this.forzarFinJornada();
+  }
+
+  public abrirInformeDebug(): void {
+    this.state.modo = 'semana';
+    this.state.jornada = MAX_JORNADAS;
+    this.state.pausado = false;
+    this.state.aire = Math.max(28, this.state.aire);
+    this.state.energia = Math.max(36, this.state.energia);
+    this.state.escudo = Math.max(42, this.state.escudo);
+    this.state.resultadosJornadas = [
+      { jornada: 1, completa: true },
+      { jornada: 2, completa: true },
+      { jornada: 3, completa: false },
+      { jornada: 4, completa: true },
+      { jornada: 5, completa: true },
+    ];
+    if (this.state.bitacora.length === 0) {
+      this.registrarEnBitacora({
+        tipo: 'eleccion',
+        id: 'mandarAire',
+        deltas: { aire: 30, energia: -6 },
+        nota: 'envio_energia',
+      });
+      this.registrarEnBitacora({
+        tipo: 'evento',
+        id: 'seguirTrabajando',
+        deltas: { escudo: -25 },
+        nota: 'FULGURACION',
+      });
+      this.registrarEnBitacora({
+        tipo: 'apagon',
+        id: 'escudos',
+        deltas: { escudo: -22 },
+      });
+    }
+    const misionesJ5 = obtenerMisionesDeJornada(MAX_JORNADAS);
+    this.state.misionesHechas = [
+      ...new Set([...this.state.misionesHechas, ...misionesJ5.map((m) => m.id)]),
+    ];
+    this.forzarFinJornada();
+  }
 }
 
 export const gameState = new GameStateManager();

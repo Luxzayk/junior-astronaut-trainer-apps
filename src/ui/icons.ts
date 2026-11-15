@@ -242,3 +242,47 @@ export function dibujarIconoRecurso(
   }
 }
 
+export function dibujarIconoSonido(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  tamano: number,
+  color: number,
+  activo: boolean,
+): void {
+  const s = tamano * 0.44;
+  // Cuerpo del altavoz
+  g.fillStyle(color, 1);
+  g.fillRoundedRect(cx - s * 0.85, cy - s * 0.36, s * 0.5, s * 0.72, 2);
+  g.fillTriangle(
+    cx - s * 0.42,
+    cy - s * 0.36,
+    cx + s * 0.16,
+    cy - s * 0.82,
+    cx + s * 0.16,
+    cy + s * 0.82,
+  );
+  g.fillTriangle(
+    cx - s * 0.42,
+    cy + s * 0.36,
+    cx - s * 0.42,
+    cy - s * 0.36,
+    cx + s * 0.16,
+    cy + s * 0.82,
+  );
+
+  if (activo) {
+    g.lineStyle(2.2, color, 0.95);
+    g.beginPath();
+    g.arc(cx + s * 0.22, cy, s * 0.45, -0.75, 0.75, false);
+    g.strokePath();
+    g.beginPath();
+    g.arc(cx + s * 0.22, cy, s * 0.8, -0.78, 0.78, false);
+    g.strokePath();
+  } else {
+    g.lineStyle(2.5, COLORES.peligro, 1);
+    g.lineBetween(cx + s * 0.34, cy - s * 0.42, cx + s * 0.96, cy + s * 0.42);
+    g.lineBetween(cx + s * 0.96, cy - s * 0.42, cx + s * 0.34, cy + s * 0.42);
+  }
+}
+

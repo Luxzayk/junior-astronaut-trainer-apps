@@ -1,6 +1,7 @@
 // Escena de menú principal: semanas, demo 4 min, glosario, fuentes, ajustes y última consulta
 
 import Phaser from 'phaser';
+import { audioEngine } from '../audio/audio';
 import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
 import {
   obtenerEtiquetaSelloEvento,
@@ -17,6 +18,7 @@ import {
   dibujarIconoEscudo,
   dibujarIconoMisionActiva,
   dibujarIconoMisionLista,
+  dibujarIconoSonido,
 } from '../ui/icons';
 import { desregistrarObjetivoUI, registrarObjetivoUI } from '../ui/targets';
 import {
@@ -249,11 +251,43 @@ export class MenuScene extends Phaser.Scene {
     // Tarjeta "Clima espacial: última consulta"
     this.dibujarTarjetaUltimaConsulta(cx, top + 516, 680, 128, idioma, textoGrande);
 
+    // Botón rápido de sonido en esquina superior izquierda (>= 56px)
+    const soundX = 114;
+    const soundY = 48;
+    const soundW = 188;
+    const soundH = 56;
+    const alternarSonido = (): void => {
+      audioEngine.registrarGestoUsuario();
+      const nuevo = updateAjustes({ sonido: !getAjustes().sonido });
+      if (nuevo.sonido) {
+        audioEngine.reproducir('clic');
+      }
+      this.scene.restart();
+    };
+    this.crearBotonSonidoMenu(
+      itemsFoco.length,
+      soundX,
+      soundY,
+      soundW,
+      soundH,
+      ajustes.sonido,
+      textoGrande,
+      alternarSonido,
+    );
+    itemsFoco.push({
+      x: soundX,
+      y: soundY,
+      ancho: soundW,
+      alto: soundH,
+      activar: alternarSonido,
+    });
+
     // Selector rápido de idioma ES / EN en esquina superior derecha (>= 56px)
     const yLang = 48;
     const btnEsX = GAME_WIDTH - 144;
     const btnEnX = GAME_WIDTH - 58;
     const cambiarIdioma = (nuevo: Idioma): void => {
+      audioEngine.reproducir('clic');
       if (getAjustes().idioma === nuevo) {
         return;
       }
@@ -448,8 +482,76 @@ export class MenuScene extends Phaser.Scene {
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(0.98);
       }
+      audioEngine.reproducir('clic');
       alPulsar();
     });
+  }
+
+  private crearBotonSonidoMenu(
+    indice: number,
+    cx: number,
+    cy: number,
+    ancho: number,
+    alto: number,
+    activo: boolean,
+    textoGrande: boolean,
+    alPulsar: () => void,
+  ): void {
+    const fondo = this.add.graphics();
+    const dibujar = (hover: boolean): void => {
+      fondo.clear();
+      fondo.fillStyle(
+        hover ? COLORES.botonHover : COLORES.botonFondo,
+        1,
+      );
+      fondo.fillRoundedRect(
+        -ancho / 2,
+        -alto / 2,
+        ancho,
+        alto,
+        ESPACIADO.radioBoton,
+      );
+      fondo.lineStyle(2, activo ? COLORES.aire : COLORES.aviso, 1);
+      fondo.strokeRoundedRect(
+        -ancho / 2,
+        -alto / 2,
+        ancho,
+        alto,
+        ESPACIADO.radioBoton,
+      );
+      dibujarIconoSonido(
+        fondo,
+        -ancho / 2 + 26,
+        0,
+        24,
+        activo ? COLORES.aire : COLORES.textoSecundario,
+        activo,
+      );
+    };
+    dibujar(false);
+
+    const etiqueta = activo ? t('sonido.on') : t('sonido.off');
+    const texto = this.add
+      .text(14, 0, etiqueta, {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${escalarTamanoTexto(19, textoGrande, 22)}px`,
+        fontStyle: 'bold',
+        color: activo ? COLORES_HEX.textoPrincipal : COLORES_HEX.aviso,
+      })
+      .setOrigin(0.5);
+
+    const zona = this.add
+      .zone(0, 0, ancho, alto)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.container(cx, cy, [fondo, texto, zona]);
+
+    zona.on('pointerover', () => {
+      dibujar(true);
+      this.gestorFoco?.sincronizarIndice(indice, false);
+    });
+    zona.on('pointerout', () => dibujar(false));
+    zona.on('pointerdown', alPulsar);
   }
 
   private crearBotonIdioma(

@@ -296,6 +296,16 @@ export class ControladorEfectosBase {
     }
   }
 
+  public obtenerConteoParticulasVivas(): number {
+    let vivas = 0;
+    for (const raya of this.poolRayas) {
+      if (raya.nodo.visible) {
+        vivas += 1;
+      }
+    }
+    return vivas;
+  }
+
   public destroy(): void {
     this.detenerPulsoAire();
     this.detenerParpadeoEnergia();

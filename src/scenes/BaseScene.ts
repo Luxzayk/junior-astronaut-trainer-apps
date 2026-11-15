@@ -1,11 +1,13 @@
 // Escena principal del puesto lunar: mapa, colisiones, astronauta, estaciones, fuga urgente y entrada
 
 import Phaser from 'phaser';
+import { audioEngine } from '../audio/audio';
 import {
   GAME_HEIGHT,
   GAME_WIDTH,
   HUD_H,
   isDebugEnabled,
+  isPerfEnabled,
   MAP_COLS,
   MAP_OFFSET_Y,
   MAP_ROWS,
@@ -57,7 +59,7 @@ import {
   encontrarCamino,
   encontrarTileCaminableMasCercano,
 } from '../game/pathfinding';
-import { getAjustes, suscribirAjustes } from '../game/settings';
+import { getAjustes, suscribirAjustes, updateAjustes } from '../game/settings';
 import { gameState } from '../game/state';
 import { tutorialManager } from '../game/tutorial';
 import { t } from '../i18n';
@@ -120,8 +122,10 @@ export class BaseScene extends Phaser.Scene {
   private indiceRuta = 0;
 
   private modoDebug = false;
+  private perfVisible = false;
   private debugVelocidadIdx = 0;
   private textoDebug: Phaser.GameObjects.Text | null = null;
+  private textoPerf: Phaser.GameObjects.Text | null = null;
   private debugMisionesContainer: Phaser.GameObjects.Container | null = null;
   private debugMisionesTexto: Phaser.GameObjects.Text | null = null;
 
@@ -151,6 +155,7 @@ export class BaseScene extends Phaser.Scene {
     this.rutaActual = [];
     this.indiceRuta = 0;
     this.modoDebug = isDebugEnabled();
+    this.perfVisible = isPerfEnabled();
     this.debugVelocidadIdx = 0;
     this.distanciaCaminataFrame = 0;
     this.frameAstronautaIdx = 0;
@@ -206,6 +211,7 @@ export class BaseScene extends Phaser.Scene {
 
     if (this.modoDebug) {
       this.actualizarTextoDebug();
+      this.actualizarTextoPerf();
     }
   }
 
@@ -991,7 +997,21 @@ export class BaseScene extends Phaser.Scene {
       })
       .setOrigin(0, 0.5);
 
+    this.textoPerf = this.add
+      .text(GAME_WIDTH - ESPACIADO.margen, HUD_H + 20, '', {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${TAMANOS_TEXTO.minimo}px`,
+        fontStyle: 'bold',
+        color: COLORES_HEX.aire,
+        backgroundColor: '#0A1326',
+        padding: { x: 8, y: 4 },
+      })
+      .setOrigin(1, 0.5)
+      .setDepth(80)
+      .setVisible(this.perfVisible);
+
     this.actualizarTextoDebug();
+    this.actualizarTextoPerf();
 
     const teclado = this.input.keyboard;
     if (!teclado) {
@@ -1052,6 +1072,12 @@ export class BaseScene extends Phaser.Scene {
         case 'KeyL':
           gameState.forzarEvacuacion();
           break;
+        case 'KeyE':
+          // KeyE sin Shift se conserva para usar estación; Shift+E fuerza evacuación
+          if (evento.shiftKey) {
+            gameState.forzarEvacuacion();
+          }
+          break;
         case 'KeyO':
           this.alternarOverlayDebugMisiones();
           break;
@@ -1092,6 +1118,27 @@ export class BaseScene extends Phaser.Scene {
           break;
         case 'KeyG':
           gameState.alternarModuloDanadoDebug('energia');
+          break;
+        case 'KeyI':
+          gameState.abrirInformeDebug();
+          break;
+        case 'KeyC':
+          gameState.forzarFinJornadaDebug(!evento.shiftKey);
+          break;
+        case 'KeyF':
+          this.perfVisible = !this.perfVisible;
+          this.textoPerf?.setVisible(this.perfVisible);
+          this.actualizarTextoPerf();
+          break;
+        case 'KeyS':
+          // KeyS sin Shift se conserva para caminar hacia abajo (WASD); Shift+S alterna sonido
+          if (evento.shiftKey) {
+            audioEngine.registrarGestoUsuario();
+            const nuevo = updateAjustes({ sonido: !getAjustes().sonido });
+            if (nuevo.sonido) {
+              audioEngine.reproducir('clic');
+            }
+          }
           break;
       }
     };
@@ -1194,6 +1241,20 @@ export class BaseScene extends Phaser.Scene {
         velocidad,
         aguaBaja: snap.aguaBaja ? t('debug.si') : t('debug.no'),
         eventoActivo: snap.eventoActivo ? t('debug.si') : t('debug.no'),
+      }),
+    );
+  }
+
+  private actualizarTextoPerf(): void {
+    if (!this.textoPerf || !this.perfVisible) {
+      return;
+    }
+    const fps = Math.round(this.game.loop.actualFps);
+    const particulas = this.efectosBase?.obtenerConteoParticulasVivas() ?? 0;
+    this.textoPerf.setText(
+      t('debug.perfEtiqueta', {
+        fps,
+        particulas,
       }),
     );
   }
@@ -1594,6 +1655,7 @@ export class BaseScene extends Phaser.Scene {
     if (snap.estado !== 'jugando' || snap.pausado || !this.estacionCercana) {
       return;
     }
+    audioEngine.reproducir('clic');
 
     const estacion = this.estacionCercana.definicion;
     const misionActiva = obtenerMisionActivaParaEstacion(

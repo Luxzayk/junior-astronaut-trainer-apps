@@ -8,6 +8,8 @@ export interface Ajustes {
   movimientoReducido: boolean; // por defecto = prefers-reduced-motion del navegador
   tutorialVisto: boolean;
   ultimaSemana: string | null;
+  sonido: boolean;
+  volumen: number; // 0..1
 }
 
 export const CLAVE_STORAGE_AJUSTES = 'entrenador_lunar_ajustes_v1';
@@ -15,6 +17,14 @@ export const CLAVE_STORAGE_AJUSTES = 'entrenador_lunar_ajustes_v1';
 type ListenerAjustes = (ajustes: Ajustes) => void;
 
 const listenersAjustes = new Set<ListenerAjustes>();
+
+function normalizarVolumen(valor: unknown, respaldo: number): number {
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) {
+    return respaldo;
+  }
+  const acotado = Math.max(0, Math.min(1, valor));
+  return Math.round(acotado * 100) / 100;
+}
 
 function detectarMovimientoReducidoSistema(): boolean {
   try {
@@ -39,6 +49,8 @@ export function crearAjustesPorDefecto(): Ajustes {
     movimientoReducido: detectarMovimientoReducidoSistema(),
     tutorialVisto: false,
     ultimaSemana: null,
+    sonido: true,
+    volumen: 0.5,
   };
 }
 
@@ -68,6 +80,9 @@ function normalizarAjustes(
       : typeof obj.ultimaSemana === 'string' && obj.ultimaSemana.trim().length > 0
         ? obj.ultimaSemana
         : base.ultimaSemana;
+  const sonido =
+    typeof obj.sonido === 'boolean' ? obj.sonido : base.sonido;
+  const volumen = normalizarVolumen(obj.volumen, base.volumen);
 
   return {
     idioma,
@@ -75,6 +90,8 @@ function normalizarAjustes(
     movimientoReducido,
     tutorialVisto,
     ultimaSemana,
+    sonido,
+    volumen,
   };
 }
 

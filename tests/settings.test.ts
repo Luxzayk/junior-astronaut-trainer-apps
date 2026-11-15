@@ -46,6 +46,8 @@ describe('Ajustes persistentes (settings.ts)', () => {
       movimientoReducido: false,
       tutorialVisto: false,
       ultimaSemana: null,
+      sonido: true,
+      volumen: 0.5,
     });
 
     vi.stubGlobal('window', {
@@ -63,7 +65,7 @@ describe('Ajustes persistentes (settings.ts)', () => {
     expect(crearAjustesPorDefecto().movimientoReducido).toBe(false);
   });
 
-  it('persiste cambios en localStorage, notifica suscriptores y permite resetear', () => {
+  it('persiste cambios en localStorage, acota volumen, notifica suscriptores y permite resetear', () => {
     const storage = crearStorageMemoria();
     vi.stubGlobal('window', {
       localStorage: storage,
@@ -72,13 +74,17 @@ describe('Ajustes persistentes (settings.ts)', () => {
 
     const historial: string[] = [];
     const desuscribir = suscribirAjustes((aj) => {
-      historial.push(`${aj.idioma}:${aj.textoGrande}:${aj.tutorialVisto}`);
+      historial.push(
+        `${aj.idioma}:${aj.textoGrande}:${aj.tutorialVisto}:${aj.sonido}:${aj.volumen}`,
+      );
     });
 
     const actualizado = updateAjustes({
       idioma: 'en',
       textoGrande: true,
       ultimaSemana: '1989-halloween',
+      sonido: false,
+      volumen: 0.75,
     });
     expect(actualizado).toEqual({
       idioma: 'en',
@@ -86,21 +92,32 @@ describe('Ajustes persistentes (settings.ts)', () => {
       movimientoReducido: false,
       tutorialVisto: false,
       ultimaSemana: '1989-halloween',
+      sonido: false,
+      volumen: 0.75,
     });
     expect(getAjustes()).toEqual(actualizado);
     expect(storage.getItem(CLAVE_STORAGE_AJUSTES)).not.toBeNull();
+
+    const acotadoAlto = updateAjustes({ volumen: 2.5 });
+    expect(acotadoAlto.volumen).toBe(1);
+    const acotadoBajo = updateAjustes({ volumen: -0.4 });
+    expect(acotadoBajo.volumen).toBe(0);
 
     const trasReset = resetAjustes();
     expect(trasReset.idioma).toBe('es');
     expect(trasReset.textoGrande).toBe(false);
     expect(trasReset.ultimaSemana).toBeNull();
+    expect(trasReset.sonido).toBe(true);
+    expect(trasReset.volumen).toBe(0.5);
     expect(storage.getItem(CLAVE_STORAGE_AJUSTES)).toBeNull();
 
     desuscribir();
     updateAjustes({ tutorialVisto: true });
     expect(historial).toEqual([
-      'en:true:false',
-      'es:false:false',
+      'en:true:false:false:0.75',
+      'en:true:false:false:1',
+      'en:true:false:false:0',
+      'es:false:false:true:0.5',
     ]);
   });
 
@@ -118,6 +135,8 @@ describe('Ajustes persistentes (settings.ts)', () => {
       movimientoReducido: false,
       tutorialVisto: false,
       ultimaSemana: null,
+      sonido: true,
+      volumen: 0.5,
     });
   });
 
