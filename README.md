@@ -1,277 +1,276 @@
-# Entrenador Lunar Junior
+# Junior Lunar Trainer
 
-Juego educativo 2D (vista cenital) para niños de 7 a 12 años diseñado para el reto **Entrenador de misiones para astronautas junior** (NASA Space Apps 2026), construido con **Vite + TypeScript (`strict: true`) + Phaser 3 + Vitest**.
+A 2D top-down educational game for children ages 7–12, designed for the **Junior Astronaut Mission Trainer** challenge (NASA Space Apps 2026), built with **Vite + TypeScript (`strict: true`) + Phaser 3 + Vitest**.
 
-## 1. Cómo jugar
+## 1. How to Play
 
 ```bash
 npm install
-npm run dev      # Abre el servidor de desarrollo en http://localhost:3000
-npm run build    # Compila el sitio estático en dist/ (base: './')
-npm run check    # Audita dist/ (JS gzip <= 1.2 MB y política sin red/URLs)
-npm run preview  # Previsualiza la compilación estática
-npm test         # Ejecuta todas las pruebas unitarias y la simulación con Vitest
-npm run lint     # Verifica tipos con TypeScript strict (tsc --noEmit)
+npm run dev      # Starts the development server at http://localhost:3000
+npm run build    # Builds the static site in dist/ (base: './')
+npm run check    # Audits dist/ (JS gzip <= 1.2 MB and no-network/URL policy)
+npm run preview  # Previews the static build
+npm test         # Runs all unit tests and the simulation with Vitest
+npm run lint     # Checks types using TypeScript strict (tsc --noEmit)
 ```
 
-### Modos de entrada por URL
-- **Juego normal**: `/` abre `MenuScene` con **Jugar la semana** (selector de 3 semanas de 5 jornadas), **Demo de 4 minutos**, **Glosario**, **Fuentes**, **Ajustes**, **Créditos**, selector rápido **ES / EN** y botón rápido de **Sonido**.
-- **Modo Demo (`?demo=1`)**: inicia directo en la **Jornada 3** (`120s`), con recursos iniciales `{ aire: 70, energia: 65, escudo: 80 }` y el evento de fulguración solar disparando a los `50s`.
-- **Modo Debug (`?debug=1`)** y **Rendimiento (`?debug=1&perf=1`)**: activan atajos de inspección y el contador en vivo de FPS y partículas (sin `?debug=1` no existen atajos ni overlays de debug).
+### URL Launch Modes
+- **Normal game**: `/` opens `MenuScene` with **Play the Week** (choose from 3 weeks of 5 days each), **4-Minute Demo**, **Glossary**, **Sources**, **Settings**, **Credits**, a quick **ES / EN** language toggle, and a quick **Sound** button.
+- **Demo Mode (`?demo=1`)**: starts directly on **Day 3** (`150s`), with initial resources `{ aire: 70, energia: 65, escudo: 80 }` and the solar flare event triggering at `60s`.
+- **Debug Mode (`?debug=1`)** and **Performance Mode (`?debug=1&perf=1`)**: enable inspection shortcuts and a live FPS/particle counter (without `?debug=1`, debug shortcuts and overlays are not available).
 
-### Flujo de juego (5 jornadas completas)
-1. **Menú y misiones activas**: cada jornada publica entre 1 y 2 misiones principales con estación y minijuego asignados (Jornada 1 incluye 2 misiones: Energía y Escudos). En el mapa se muestran el panel de misiones pendientes y el marcador en la estación activa. En la Jornada 1, si es la primera vez, arranca el tutorial interactivo de 7 pasos.
-2. **Tres minijuegos con registro común (`MINIGAME_REGISTRY`)**:
-   - **Nodos (`energia`)**: circuito de cables (`4x3`) con rotación hasta conectar Entrada con Salida (costo de intento `-3%` Energía, límite `60s`, pista visual a los `10s`).
-   - **Válvulas (`invernadero` / `tanque`)**: secuencia de válvulas A/B/C mientras sube el medidor de presión (`+2.5/s`, acierto `-15`, error `+18`, costo de intento `-2%` Energía, límite `45s`).
-   - **Escudo (`escudos`)**: alinear los paneles del campo deflector antes del impacto (costo de intento `-2%` Energía, límite `45s`).
-3. **Elecciones por estación (`ChoiceScene`)**: tras completar una misión normal se abre la decisión táctica con ganancias (`+`) y costos (`-`) visibles:
-   - `envio_energia` (`energia`): **Mandar a Aire** vs **Mandar a Escudo**.
-   - `invernadero` (`invernadero`): **Plena luz** vs **Ahorro de agua y luz**.
-   - `escudo_potencia` (`escudos`): **Potencia alta** vs **Potencia baja**.
-4. **Los 4 eventos de la semana**:
-   - **Jornada 2 (`45s`) — Fuga en Tanque**: misión urgente (`35s` de ventana) que no pausa el reloj ni requiere `ChoiceScene`; si expira, activa `aguaBaja` en la Jornada 3 (drenaje de Aire `x1.15`).
-   - **Jornada 3 (`60s`) — Fulguración solar (`FLR`)**: pausa la jornada y da a elegir **Refugiarte** (`-12` Energía y pierde las misiones pendientes de la jornada) o **Seguir trabajando** (`-25` Escudo).
-   - **Jornada 4 (`50s`) — Apagón (`ApagonScene`)**: pausa y obliga a apagar uno de 3 módulos (**Soporte de vida** `-16` Aire, **Escudos** `-22` Escudo o **Invernadero** `-10` Energía y pierde misiones pendientes de Invernadero).
-   - **Jornada 5 (`70s`) — Tormenta grande (`TORMENTA_GRANDE`)**: alerta mayor con decisión entre **Refugiarte** (`-15` Energía y pierde pendientes) o **Seguir trabajando** (`-35` Escudo).
-5. **Cierre, Bitácora e Informe Final**:
-   - Secuencias animadas cortas y saltables (`src/fx/cierres.ts`) acompañadas por **Luni** (`src/art/mascota.ts`) y audio sintetizado suave (`src/audio/audio.ts`).
-   - Al completar la Jornada 5 o sufrir una evacuación (`Aire <= 0%`) en modo semana se abre `InformeScene` con el rango obtenido (`Comandante`, `Especialista`, `Cadete` o `Astronauta en entrenamiento`), bitácora de decisiones difíciles, datos usados, nota opcional de OSDR y botón para copiar resultado.
+### Gameplay Flow (5 Complete Days)
+1. **Menu and active missions**: each day features 1–2 main missions, each assigned to a station and minigame. The map displays a pending-missions panel and a marker at the active station. On Day 1, first-time players begin with a 7-step interactive tutorial.
+2. **Three minigames in a shared registry (`MINIGAME_REGISTRY`)**:
+   - **Nodes (`energia`)**: a rotating-wire circuit (`4x3`) that players must connect from Input to Output (attempt cost: `-3%` Energy; `60s` time limit; visual hint after `10s`).
+   - **Valves (`invernadero` / `tanque`)**: an A/B/C valve sequence while a pressure gauge rises (`+2.5/s`; correct answer: `-15`; mistake: `+18`; attempt cost: `-2%` Energy; `45s` time limit).
+   - **Shield (`escudos`)**: align deflector-field panels before impact (attempt cost: `-2%` Energy; `45s` time limit).
+3. **Station-specific choices (`ChoiceScene`)**: after completing a normal mission, players face a tactical decision with visible benefits (`+`) and costs (`-`):
+   - `envio_energia` (`energia`): **Send to Air** vs. **Send to Shield**.
+   - `invernadero` (`invernadero`): **Full Light** vs. **Save Water and Light**.
+   - `escudo_potencia` (`escudos`): **High Power** vs. **Low Power**.
+4. **The week's 4 events**:
+   - **Day 2 (`70s`) — Tank Leak**: an urgent mission (`40s` window) that does not pause the clock or require `ChoiceScene`. If it expires, it activates `aguaBaja` on Day 3 (Air drain `x1.15`).
+   - **Day 3 (`90s`) — Solar Flare (`FLR`)**: pauses the day and offers **Take Shelter** (`-12` Energy and forfeits pending missions for that day) or **Keep Working** (`-25` Shield).
+   - **Day 4 (`70s`) — Power Outage (`ApagonScene`)**: pauses the day and requires shutting down one of three modules (**Life Support**: `-16` Air; **Shields**: `-22` Shield; or **Greenhouse**: `-10` Energy and forfeits pending Greenhouse missions).
+   - **Day 5 (`100s`) — Major Storm (`TORMENTA_GRANDE`)**: a major alert with a choice between **Take Shelter** (`-15` Energy and forfeits pending missions) or **Keep Working** (`-35` Shield).
+5. **End-of-Day Sequences, Logbook, and Final Report**:
+   - Short, skippable animated sequences (`src/fx/cierres.ts`) featuring **Luni** (`src/art/mascota.ts`) and gentle synthesized audio (`src/audio/audio.ts`).
+   - After completing Day 5 or being evacuated (`Air <= 0%`) in week mode, `InformeScene` displays the player's rank (**Commander**, **Specialist**, **Cadet**, or **Astronaut Trainee**), a logbook of difficult decisions, the data used, an optional OSDR note, and a button to copy the result.
 
-### Audio, efectos y accesibilidad
-- **Audio sintetizado con WebAudio (`src/audio/audio.ts`, `src/audio/sonidos.ts`)**: cero archivos `.mp3/.ogg` ni música continua. Se inicializa de forma diferida tras el primer gesto del usuario (`pointerdown`/`keydown`), limita a **4 voces simultáneas**, aplica enfriamiento de **150 ms** entre alertas idénticas y falla en silencio si `AudioContext` no existe. Botón de silencio accesible (`>= 56px`) en Menú, HUD, Pausa y Ajustes (con control de volumen).
-- **Accesibilidad persistente (`src/game/settings.ts`, `contrast.ts`, `focus.ts`, `targets.ts`)**: idioma **ES/EN** instantáneo, **Texto grande (`x1.25`)**, **Movimiento reducido** (desactiva pulsos, temblores y partículas en movimiento dejando bordes estáticos y badge `'!'`), y navegación completa por teclado (`Tab`, flechas, `Enter`/`Space`, `Escape`).
+### Audio, Effects, and Accessibility
+- **Synthesized WebAudio (`src/audio/audio.ts`, `src/audio/sonidos.ts`)**: no `.mp3/.ogg` files or continuous music. Audio initializes lazily after the first user gesture (`pointerdown`/`keydown`), limits playback to **4 simultaneous voices**, enforces a **150 ms** cooldown between identical alerts, and fails silently if `AudioContext` is unavailable. Accessible mute button (`>= 56px`) in Menu, HUD, Pause, and Settings (with volume control).
+- **Persistent accessibility options (`src/game/settings.ts`, `contrast.ts`, `focus.ts`, `targets.ts`)**: instant **ES/EN** language switching, **Large Text (`x1.25`)**, **Reduced Motion** (disables pulses, screen shake, and moving particles while retaining static outlines and a `'!'` badge), and full keyboard navigation (`Tab`, arrow keys, `Enter`/`Space`, `Escape`).
 
 ---
 
-## 2. Cómo se obtuvieron los datos
+## 2. How the Data Was Obtained
 
-El juego funciona **100 % sin conexión y sin llamadas de red en tiempo de ejecución** (`src/` no usa `fetch`, `XMLHttpRequest` ni importa archivos crudos; verificado por `tests/no-red.test.ts` y `npm run check`).
+The game runs **100% offline, with no runtime network requests** (`src/` does not use `fetch` or `XMLHttpRequest` or import raw files; checked by `tests/no-red.test.ts` and `npm run check`).
 
-### Datos locales curados de NASA DONKI (`src/data/eventos.json`)
-1. Se definieron **3 semanas seleccionables** (`semana-1`, `semana-2`, `semana-3` en `src/game/semanas.ts`) vinculadas a 6 eventos curados en `src/data/eventos.json` y expuestos mediante `src/data/eventosLoader.ts`.
-2. Para consultar eventos reales del catálogo **NASA DONKI (FLR y SEP)** de forma manual y guardar trazabilidad offline:
-   - Edita las fechas reales (`YYYY-MM-DD`) de `SEMANAS` dentro de `scripts/fetch-donki.mjs`.
-   - Ejecuta manualmente desde terminal con tu clave personal:
+### Locally Curated NASA DONKI Data (`src/data/eventos.json`)
+1. **3 selectable weeks** were defined (`semana-1`, `semana-2`, `semana-3` in `src/game/semanas.ts`) and linked to 6 curated events in `src/data/eventos.json`, exposed through `src/data/eventosLoader.ts`.
+2. To manually retrieve real events from the **NASA DONKI (FLR and SEP)** catalog while retaining offline traceability:
+   - Edit the actual dates (`YYYY-MM-DD`) in `SEMANAS` inside `scripts/fetch-donki.mjs`.
+   - Run the script manually from the terminal using your personal API key:
      ```bash
      NASA_API_KEY=TU_CLAVE node scripts/fetch-donki.mjs
      ```
-   - El script guarda `src/data/donki/semana-1.raw.json`, `semana-2.raw.json` y `semana-3.raw.json` con `consultadoEn`, `ventana`, `flr` y `sep`. **Nunca** se importan esos `*.raw.json` desde `src/`.
-3. **Sello honesto automático**: cada evento marcado con `"verificado": true` requiere `id`, `semana`, `jornada` (`3` o `5`), `tipo` (`'FLR'` o `'SEP'`), `fecha` ISO válida, `clase`, `nivel` (`'media'` o `'fuerte'`), `fuenteNombre`, `fuenteUrl`, `consultadoEn` y `textoNinos` (`es`/`en`). Si `"verificado": false` o falta algún campo, `eventosLoader.ts` asigna `esEjemplo: true` y la interfaz muestra **Dato de ejemplo / Sample data** en lugar de afirmar que es dato en vivo.
-4. **Datos opcionales de NASA OSDR (`src/data/osdr.json`, `osdrLoader.ts`)**: nota educativa complementaria de biología espacial curada localmente con el mismo sello honesto (`verificado: false` por defecto hasta revisión humana).
+   - The script saves `src/data/donki/semana-1.raw.json`, `semana-2.raw.json`, and `semana-3.raw.json` with `consultadoEn`, `ventana`, `flr`, and `sep`. These `*.raw.json` files are **not imported** from `src/`.
+3. **Automatic, transparent data labeling**: each event marked with `"verificado": true` requires `id`, `semana`, `jornada` (`3` or `5`), `tipo` (`'FLR'` or `'SEP'`), a valid ISO `fecha`, `clase`, `nivel` (`'media'` or `'fuerte'`), `fuenteNombre`, `fuenteUrl`, `consultadoEn`, and `textoNinos` (`es`/`en`). If `"verificado": false` or any field is missing, `eventosLoader.ts` assigns `esEjemplo: true`, and the interface displays **Dato de ejemplo / Sample data** rather than claiming the data is live.
+4. **Optional NASA OSDR data (`src/data/osdr.json`, `osdrLoader.ts`)**: a supplementary space-biology educational note curated locally with the same transparent label (`verificado: false` by default until human review).
 
 ---
 
-## 3. Qué es balance de juego y qué es dato de la NASA
+## 3. What Is Game Balancing and What Is NASA Data?
 
-| Concepto | Clasificación | Detalle |
+| Concept | Classification | Details |
 | :--- | :--- | :--- |
-| Catálogo, fechas, clases (`M`/`X`) y ventanas de FLR y SEP | **Dato histórico de archivo (NASA DONKI)** | Solo cuando `"verificado": true` en `src/data/eventos.json`; en caso contrario se etiqueta explícitamente como **Dato de ejemplo**. |
-| Notas educativas opcionales sobre plantas/radiación | **Dato curado local (NASA OSDR)** | `src/data/osdr.json`, siempre acompañado de su sello de archivo o ejemplo. |
-| Porcentajes iniciales (`70%–80%` aleatorios), drenajes por segundo, costos de minijuegos, efectos de decisiones/eventos, duraciones (`120s`), rangos y mascota **Luni** | **Balance y diseño educativo del juego** | Definidos en `src/game/balance.ts`, `src/art/mascota.ts` e `src/i18n.ts`; declarados expresamente como simulación educativa en `FuentesScene`, `MinigameScene`, `EventScene` e `InformeScene`. |
+| FLR and SEP catalog entries, dates, classes (`M`/`X`), and time windows | **Historical archive data (NASA DONKI)** | Only when `"verificado": true` in `src/data/eventos.json`; otherwise explicitly labeled **Sample data**. |
+| Optional educational notes about plants/radiation | **Locally curated data (NASA OSDR)** | `src/data/osdr.json`, always accompanied by an archive/sample label. |
+| Initial percentages (`100%`), per-second resource drain, minigame costs, decision/event effects, durations (`180s`/`150s`), ranks, and the **Luni** mascot | **Game balancing and educational design** | Defined in `src/game/balance.ts`, `src/art/mascota.ts`, and `src/i18n.ts`; explicitly identified as an educational simulation in `FuentesScene`, `MinigameScene`, `EventScene`, and `InformeScene`. |
 
-### Parámetros finales calibrados (`src/game/balance.ts`)
+### Final Calibrated Parameters (`src/game/balance.ts`)
 
-| Constante | Valor calibrado | Nota |
+| Constant | Calibrated Value | Notes |
 | :--- | :--- | :--- |
-| `DURACION_JORNADA` | `120` s | `5` jornadas (`2` minutos por jornada, `120` s en Demo) |
-| `RANGO_RECURSOS_INICIALES` | `70`–`80` % | Sorteo inicial independiente por recurso (`75` base en simulación) |
-| `DRENAJE_BASE_POR_SEG` | `{ aire: 0.38, energia: 0.12, escudo: 0.105 }` | Por segundo base (`x1.00`) |
-| `MULT_DRENAJE_POR_JORNADA` | `[0.70, 0.85, 1.00, 1.15, 1.25]` | J1..J5 |
-| `COSTO_INTENTO_MINIJUEGO` | `nodos: -3`, `valvulas: -2`, `escudo: -2` Energía | Al abrir estación |
-| `RECARGA_COMPLETA` | `+20` Energía | Cierre con todas las misiones hechas |
-| `MULT_MODULO_DANADO` | `x1.25` | Sobre el recurso del módulo dañado |
-| `REFUERZO_CONTROL_MISION` | `{ energia: +15, aire: +10 }` | Único, tras `2` incompletas seguidas |
-| `ELECCIONES.envio_energia` | `mandarAire (+30 Aire, -6 E)` / `mandarEscudo (+30 Esc, -6 E)` | No dominadas |
-| `ELECCIONES.invernadero` | `plenaLuz (+38 Aire, -8 E)` / `ahorro (+24 Aire, -3 E)` | No dominadas |
-| `ELECCIONES.escudo_potencia` | `potenciaAlta (+32 Esc, -8 E)` / `potenciaBaja (+20 Esc, -3 E)` | No dominadas |
-| `AGUA_BAJA_MULT_AIRE` | `x1.15` | Si expira la fuga de J2 (`35s` a los `45s`) |
-| `EFECTOS_EVENTO_FLR` (J3 `60s`) | `refugiarte (-12 E, pierde pendientes)` / `seguirTrabajando (-25 Esc)` | Restringido a `'media'` en J3 para conservar mínimo `>= 10%` |
-| `EFECTOS_APAGON` (J4 `50s`) | `soporteVida (-16 Aire)` / `escudos (-22 Esc)` / `invernadero (-10 E, pierde Inv.)` | No dominadas |
-| `EFECTOS_EVENTO_TORMENTA_GRANDE` (J5 `70s`) | `refugiarte (-15 E, pierde pendientes)` / `seguirTrabajando (-35 Esc)` | No dominadas |
-| `RANGOS` | `commander: 5`, `specialist: 4`, `cadet: 2`, `trainee: 0` | Basados en jornadas completas |
+| `DURACION_JORNADA` | `180` s | `5` days (`150` s in Demo) |
+| `DRENAJE_BASE_POR_SEG` | `{ aire: 0.26, energia: 0.11, escudo: 0.08 }` | Base per-second drain (`x1.00`) |
+| `MULT_DRENAJE_POR_JORNADA` | `[0.70, 0.85, 1.00, 1.15, 1.25]` | D1..D5 |
+| `COSTO_INTENTO_MINIJUEGO` | `nodos: -3`, `valvulas: -2`, `escudo: -2` Energy | On opening a station |
+| `RECARGA_COMPLETA` | `+20` Energy | End-of-day reward when all missions are completed |
+| `MULT_MODULO_DANADO` | `x1.25` | Applied to the damaged module's resource |
+| `REFUERZO_CONTROL_MISION` | `{ energia: +15, aire: +10 }` | One-time boost after `2` consecutive incomplete days |
+| `ELECCIONES.envio_energia` | `mandarAire (+30 Air, -6 E)` / `mandarEscudo (+30 Shield, -6 E)` | Neither choice dominates |
+| `ELECCIONES.invernadero` | `plenaLuz (+38 Air, -8 E)` / `ahorro (+24 Air, -3 E)` | Neither choice dominates |
+| `ELECCIONES.escudo_potencia` | `potenciaAlta (+32 Shield, -8 E)` / `potenciaBaja (+20 Shield, -3 E)` | Neither choice dominates |
+| `AGUA_BAJA_MULT_AIRE` | `x1.15` | If the Day 2 leak (`40s`) expires |
+| `EFECTOS_EVENTO_FLR` (D3 `90s`) | `refugiarte (-12 E, forfeits pending missions)` / `seguirTrabajando (-25 Shield)` | Restricted to `'media'` on D3 to preserve a minimum `>= 10%` |
+| `EFECTOS_APAGON` (D4 `70s`) | `soporteVida (-16 Air)` / `escudos (-22 Shield)` / `invernadero (-10 E, forfeits Greenhouse missions)` | Neither choice dominates |
+| `EFECTOS_EVENTO_TORMENTA_GRANDE` (D5 `100s`) | `refugiarte (-15 E, forfeits pending missions)` / `seguirTrabajando (-35 Shield)` | Neither choice dominates |
+| `RANGOS` | `commander: 5`, `specialist: 4`, `cadet: 2`, `trainee: 0` | Based on fully completed days |
 
-### Simulación combinatoria (`src/game/simulation.ts`)
+### Combinatorial Simulation (`src/game/simulation.ts`)
 
 ```bash
 npx tsx -e "import { simularSemana } from './src/game/simulation'; console.log(simularSemana('perfecto', { nivelJ3: 'media', nivelJ5: 'fuerte' }));"
 ```
 
-| Combinación `(J3, J5)` | Política | Mínimo semana (`A / E / S`) | Final semana (`A / E / S`) | Resultado |
+| Combination `(D3, D5)` | Policy | Weekly Minimum (`A / E / S`) | Week-End Values (`A / E / S`) | Outcome |
 | :--- | :--- | :--- | :--- | :--- |
-| `(media, media)` *(válida)* | `perfecto` | `20.3 / 14.9 / 22.6` | `20.3 / 34.7 / 22.6` | **Completa J5** (mín `>= 10`, final `< 40`) |
-| `(media, media)` *(válida)* | `mediocre` | `0.0 / 0.0 / 0.0` | `0.0 / 0.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
-| `(media, media)` *(válida)* | `pasivo` | `0.0 / 49.7 / 52.6` | `0.0 / 61.4 / 52.6` | **Evacuado en J3** (`<= 3`) |
-| `(media, fuerte)` *(válida)* | `perfecto` | `20.3 / 14.9 / 12.6` | `20.3 / 34.7 / 12.6` | **Completa J5** (mín `>= 10`, final `< 40`) |
-| `(media, fuerte)` *(válida)* | `mediocre` | `0.0 / 0.0 / 0.0` | `0.0 / 0.0 / 0.0` | **Evacuado en J5** (`>= 3`) |
-| `(media, fuerte)` *(válida)* | `pasivo` | `0.0 / 49.7 / 52.6` | `0.0 / 61.4 / 52.6` | **Evacuado en J3** (`<= 3`) |
+| `(media, media)` *(valid)* | `perfecto` | `13.7 / 13.1 / 30.7` | `13.7 / 33.0 / 30.7` | **Completes D5** (min `>= 10`, final `< 40`) |
+| `(media, media)` *(valid)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | **Evacuated on D5** (`>= 3`) |
+| `(media, media)` *(valid)* | `pasivo` | `0.0 / 57.0 / 69.6` | `0.0 / 57.0 / 69.6` | **Evacuated on D3** (`<= 3`) |
+| `(media, fuerte)` *(valid)* | `perfecto` | `13.7 / 13.1 / 20.7` | `13.7 / 33.0 / 20.7` | **Completes D5** (min `>= 10`, final `< 40`) |
+| `(media, fuerte)` *(valid)* | `mediocre` | `0.0 / 14.0 / 0.0` | `0.0 / 14.0 / 0.0` | **Evacuated on D5** (`>= 3`) |
+| `(media, fuerte)` *(valid)* | `pasivo` | `0.0 / 57.0 / 69.6` | `0.0 / 57.0 / 69.6` | **Evacuated on D3** (`<= 3`) |
 
 ---
 
-## 4. Uso de IA
+## 4. Use of AI
 
-La declaración transparente y completa de asistencia por IA se encuentra en [`docs/uso-de-ia.md`](docs/uso-de-ia.md), junto con los materiales de entrega en [`docs/pagina-proyecto.md`](docs/pagina-proyecto.md) y [`docs/guion-demo.md`](docs/guion-demo.md). Ningún dato científico o histórico de la NASA fue inventado por IA: todos los registros locales sin verificación humana aparecen explícitamente marcados como **Dato de ejemplo / Sample data** hasta que un humano ejecute `scripts/fetch-donki.mjs` y valide cada campo.
-
----
-
-## 5. Textos pendientes de revisión humana
-
-Todas las claves de `src/i18n.ts` tienen paridad exacta `ES`/`EN` (probada por `tests/i18n.test.ts`). Antes de publicar la versión final del hackathon se recomienda revisión humana de:
-
-- **Bloques `EN` para niños (7–12 años)**: `glosario.terminos.*`, `tutorial.*`, `eventoClima.*`, `sellos.*`, `fuentes.*`, `semanas.*`, `rangos.*`, `informe.*`, `mascota.*` y `cierres.*`.
-- **Resúmenes curados**: campos `textoNinos.es` / `textoNinos.en` de `src/data/eventos.json` y `src/data/osdr.json` al cargar eventos/registros reales verificados.
-- **Marcadores en `docs/` y `src/data/creditos.ts`**: completar los placeholders entre corchetes (`[nombre del equipo]`, `[año]`, `[licencia]`, `[herramientas usadas]`, `[qué revisó el equipo]`).
+The full, transparent disclosure of AI assistance is available in [`docs/uso-de-ia.md`](docs/uso-de-ia.md), along with submission materials in [`docs/pagina-proyecto.md`](docs/pagina-proyecto.md) and [`docs/guion-demo.md`](docs/guion-demo.md). No NASA scientific or historical data was invented by AI: all locally stored records that have not undergone human verification are explicitly labeled **Dato de ejemplo / Sample data** until a human runs `scripts/fetch-donki.mjs` and validates each field.
 
 ---
 
-## 6. Tabla de debug y verificación manual
+## 5. Text Pending Human Review
 
-Agrega `?debug=1` a la URL (`http://localhost:3000/?debug=1`) para activar atajos, o `?debug=1&perf=1` para mostrar también desde el arranque el contador de FPS y partículas vivas.
+All keys in `src/i18n.ts` have exact `ES`/`EN` parity (tested by `tests/i18n.test.ts`). Before publishing the final hackathon version, human review is recommended for:
 
-### Tabla de atajos `?debug=1`
+- **Child-friendly `EN` text (ages 7–12)**: `glosario.terminos.*`, `tutorial.*`, `eventoClima.*`, `sellos.*`, `fuentes.*`, `semanas.*`, `rangos.*`, `informe.*`, `mascota.*`, and `cierres.*`.
+- **Curated summaries**: `textoNinos.es` / `textoNinos.en` fields in `src/data/eventos.json` and `src/data/osdr.json` when loading real, verified events/records.
+- **Placeholders in `docs/` and `src/data/creditos.ts`**: fill in the bracketed placeholders (`[nombre del equipo]`, `[año]`, `[licencia]`, `[herramientas usadas]`, `[qué revisó el equipo]`).
 
-| Tecla | Acción | Notas y colisiones conservadas |
+---
+
+## 6. Debug Reference and Manual Verification
+
+Add `?debug=1` to the URL (`http://localhost:3000/?debug=1`) to enable shortcuts, or `?debug=1&perf=1` to also display the FPS and active-particle counter from startup.
+
+### `?debug=1` Keyboard Shortcuts
+
+| Key | Action | Notes and Preserved Key Conflicts |
 | :--- | :--- | :--- |
-| `1`, `2`, `3` | Restar `10` a **Aire**, **Energía** o **Escudo** | — |
-| `Shift + 1`, `2`, `3` | Sumar `10` a **Aire**, **Energía** o **Escudo** | — |
-| `Alt + 1` .. `Alt + 5` | Saltar directo a la **Jornada 1..5** | — |
-| `J` | Saltar directo a la **Jornada 3** | — |
-| `V` | Disparar el evento de la jornada actual | — |
-| `B` | Activar / desactivar `aguaBaja` | — |
-| `M` | Completar la siguiente misión pendiente (o urgente) | — |
-| `X` | Fallar / marcar perdida la siguiente misión pendiente | — |
-| `O` | Mostrar / ocultar overlay de estado de misiones | — |
-| `G` | Dañar / reparar manualmente el módulo de **Energía** | — |
-| `T` | Alternar velocidad del reloj y drenaje (`x1` / `x10`) | — |
-| `N` | Avanzar a la siguiente jornada | — |
-| `K` | Forzar fin de la jornada actual (evaluación natural) | — |
-| `C` | Forzar cierre de **jornada completa** | Completa misiones de la jornada y dispara cierre |
-| `Shift + C` | Forzar cierre de **jornada incompleta** | Marca misión pendiente/perdida y dispara cierre |
-| `I` | Abrir **Informe Final** con datos de prueba en `bitacora` | Salta a J5 completo y abre `InformeScene` |
-| `L` / `Shift + E` | Forzar **evacuación inmediata** | **Colisión conservada**: `E` sin `Shift` se mantiene para **Usar estación** |
-| `F` | Mostrar / ocultar contador de **FPS y partículas vivas** | También inicia visible con `?debug=1&perf=1` |
-| `Shift + S` | Activar / silenciar **Sonido** | **Colisión conservada**: `S` sin `Shift` se mantiene para caminar abajo (`WASD`) |
+| `1`, `2`, `3` | Subtract `10` from **Air**, **Energy**, or **Shield** | — |
+| `Shift + 1`, `2`, `3` | Add `10` to **Air**, **Energy**, or **Shield** | — |
+| `Alt + 1` .. `Alt + 5` | Jump directly to **Day 1..5** | — |
+| `J` | Jump directly to **Day 3** | — |
+| `V` | Trigger the current day's event | — |
+| `B` | Toggle `aguaBaja` on/off | — |
+| `M` | Complete the next pending (or urgent) mission | — |
+| `X` | Fail / mark the next pending mission as lost | — |
+| `O` | Show / hide the mission-status overlay | — |
+| `G` | Manually damage / repair the **Energy** module | — |
+| `T` | Toggle clock speed and resource drain (`x1` / `x10`) | — |
+| `N` | Advance to the next day | — |
+| `K` | Force the end of the current day (normal evaluation) | — |
+| `C` | Force a **completed-day** ending | Completes the day's missions and triggers the ending |
+| `Shift + C` | Force an **incomplete-day** ending | Marks a mission as pending/lost and triggers the ending |
+| `I` | Open the **Final Report** with test data in `bitacora` | Jumps to completed D5 and opens `InformeScene` |
+| `L` / `Shift + E` | Force **immediate evacuation** | **Preserved key conflict**: `E` without `Shift` remains **Use Station** |
+| `F` | Show / hide the **FPS and active-particle counter** | Also starts visible with `?debug=1&perf=1` |
+| `Shift + S` | Enable / mute **Sound** | **Preserved key conflict**: `S` without `Shift` remains Move Down (`WASD`) |
 
-### Checklist de verificación manual antes de entregar
+### Pre-Submission Manual Verification Checklist
 
-- [ ] **Móvil / pantalla táctil (`390x844` / `Fit`)**: caminar tocando salas, pulsar **Usar**, jugar Nodos, Válvulas y Escudo, y comprobar que todos los botones miden al menos `56px` sin solaparse.
-- [ ] **Modo Demo (`?demo=1`)**: completar en `< 4` minutos la Jornada 3, responder a la fulguración solar y validar la pantalla de fin de demo.
-- [ ] **Semana completa (5 jornadas)**: recorrer J1 (con tutorial), J2 (fuga urgente), J3 (FLR), J4 (apagón) y J5 (tormenta grande) hasta ver **Informe Final**, rango y copiar resultado.
-- [ ] **Cambio ES / EN en vivo**: alternar idioma en Menú, HUD, Ajustes, Glosario, Fuentes, Créditos e Informe Final comprobando `Texto grande (x1.25)`.
-- [ ] **Silencio y volumen**: silenciar desde Menú, HUD, Pausa y Ajustes, ajustar volumen y recargar verificando que la preferencia persiste en `localStorage` y que nunca suena sin clic/tecla previo.
-- [ ] **Movimiento reducido**: activarlo en Ajustes y confirmar en HUD/Base que no hay temblores, pulsos ni rayas móviles, manteniéndose los bordes estáticos e iconos `'!'`.
-- [ ] **Sin red (offline)**: construir con `npm run build && npm run check`, abrir con DevTools en modo *Offline* y confirmar que no falla ningún recurso ni aparecen llamadas de red.
-
----
-
-## 7. Próximos pasos
-
-1. Ejecutar `NASA_API_KEY=... node scripts/fetch-donki.mjs` con fechas reales elegidas por el equipo, revisar los textos infantiles en `src/data/eventos.json` y activar `"verificado": true` únicamente en los registros validados.
-2. Completar los marcadores de equipo/licencia/herramientas en `src/data/creditos.ts`, `docs/uso-de-ia.md` y `docs/pagina-proyecto.md`.
-3. Realizar la revisión pedagógica y lingüística nativa de las claves `EN` listadas en la sección 5.
-4. Grabar el video de presentación siguiendo `docs/guion-demo.md` utilizando `?demo=1`.
+- [ ] **Mobile / touchscreen (`390x844` / `Fit`)**: move by tapping rooms, press **Use**, play Nodes, Valves, and Shield, and verify that every button is at least `56px` without overlapping.
+- [ ] **Demo Mode (`?demo=1`)**: complete Day 3 in `< 4` minutes, respond to the solar flare, and validate the demo-end screen.
+- [ ] **Full week (5 days)**: play through D1 (with tutorial), D2 (urgent leak), D3 (FLR), D4 (power outage), and D5 (major storm) until the **Final Report**, rank, and copy-result option appear.
+- [ ] **Live ES / EN switching**: toggle the language in Menu, HUD, Settings, Glossary, Sources, Credits, and Final Report while checking **Large Text (`x1.25`)**.
+- [ ] **Mute and volume**: mute from Menu, HUD, Pause, and Settings, adjust the volume, and reload to verify that the preference persists in `localStorage` and no sound plays before a click/key press.
+- [ ] **Reduced Motion**: enable it in Settings and confirm in HUD/Base that there is no screen shake, pulsing, or moving streaks while static outlines and `'!'` icons remain.
+- [ ] **Offline operation**: build with `npm run build && npm run check`, switch DevTools to *Offline*, and confirm that no resources fail to load and no network requests appear.
 
 ---
 
-## Estructura del proyecto
+## 7. Next Steps
+
+1. Run `NASA_API_KEY=... node scripts/fetch-donki.mjs` using real dates selected by the team, review child-friendly text in `src/data/eventos.json`, and set `"verificado": true` only for validated records.
+2. Fill in team/license/tool placeholders in `src/data/creditos.ts`, `docs/uso-de-ia.md`, and `docs/pagina-proyecto.md`.
+3. Conduct a native-English pedagogical and linguistic review of the `EN` keys listed in Section 5.
+4. Record the presentation video using `?demo=1` and following `docs/guion-demo.md`.
+
+---
+
+## Project Structure
 
 ```text
 docs/
-  pagina-proyecto.md      // Ficha de entrega para NASA Space Apps
-  guion-demo.md           // Guion cronometrado de presentación (~3-4 min)
-  uso-de-ia.md            // Declaración transparente de herramientas IA y curaduría humana
+  pagina-proyecto.md      // NASA Space Apps submission information
+  guion-demo.md           // Timed presentation script (~3–4 min)
+  uso-de-ia.md            // Transparent disclosure of AI tools and human curation
 scripts/
-  fetch-donki.mjs         // Script manual offline para consultar NASA DONKI (sin uso en runtime)
-  check-bundle.mjs        // Auditoría de dist/: tamaño total, JS gzip <= 1.2 MB y URLs externas
+  fetch-donki.mjs         // Manual offline script to query NASA DONKI (not used at runtime)
+  check-bundle.mjs        // dist/ audit: total size, JS gzip <= 1.2 MB, and external URLs
 src/
-  main.ts                 // Arranque: inicializa audioEngine, carga Nunito local y crea Phaser.Game
-  config.ts               // Constantes de pantalla (1280x720, TILE=64, HUD_H=80) y flags ?debug/?demo/?perf
-  i18n.ts                 // Sistema bilingüe ES/EN con interpolación y paridad estricta
+  main.ts                 // Entry point: initializes audioEngine, loads local Nunito, and creates Phaser.Game
+  config.ts               // Screen constants (1280x720, TILE=64, HUD_H=80) and ?debug/?demo/?perf flags
+  i18n.ts                 // ES/EN bilingual system with interpolation and strict key parity
   art/
-    mascota.ts            // Mascota procedural "Luni" por estados + widget reutilizable con frase corta
-    texturas.ts           // Generación procedural en canvas de suelos, paredes, detalles y astronauta (4 frames)
+    mascota.ts            // Procedural "Luni" mascot with states + reusable short-message widget
+    texturas.ts           // Procedural canvas generation for floors, walls, details, and astronaut (4 frames)
   audio/
-    sonidos.ts            // Definiciones puras de tonos WebAudio suaves (sin música continua)
-    audio.ts              // MotorAudio: inicio tras gesto, <= 4 voces, >= 150ms cooldown y respaldo silencioso
+    sonidos.ts            // Pure definitions of gentle WebAudio tones (no continuous music)
+    audio.ts              // Audio engine: gesture-triggered startup, <= 4 voices, >= 150ms cooldown, silent fallback
   fx/
-    efectos.ts            // Evaluador puro y capas visuales por recurso + pool pre-asignado de partículas
-    cierres.ts            // Secuencias animadas saltables de cierre completo, incompleto y evacuación
+    efectos.ts            // Pure resource-state evaluator, visual layers, and preallocated particle pool
+    cierres.ts            // Skippable animated sequences for complete, incomplete, and evacuation endings
   data/
-    donki/README.md       // Política de archivo local sin importación en src/
-    creditos.ts           // Metadatos de autoría, dependencias y licencias
-    eventos.json          // Catálogo local de 6 eventos para las 3 semanas (verificado/ejemplo)
-    eventosLoader.ts      // Cargador seguro, sello de fecha y restricción de nivel en J3
-    fuentes.ts            // Metadatos honestos de fuentes de archivo, balance y tecnología
-    osdr.json             // Nota educativa opcional curada localmente
-    osdrLoader.ts         // Cargador seguro de datos OSDR con sello honesto
+    donki/README.md       // Local archive policy; no imports into src/
+    creditos.ts           // Authorship, dependency, and license metadata
+    eventos.json          // Local catalog of 6 events for the 3 weeks (verified/sample)
+    eventosLoader.ts      // Safe loader, date label, and D3 intensity restriction
+    fuentes.ts            // Transparent metadata for archive, balance, and technology sources
+    osdr.json             // Optional locally curated educational note
+    osdrLoader.ts         // Safe OSDR data loader with transparent labeling
   game/
-    state.ts              // Estado único del juego, bitácora, helpers debug y emisor tipado de eventos
-    balance.ts            // Números de balance calibrados, RANGOS y constantes visuales/audio
-    bitacora.ts           // Registro puro de decisiones y causas principales de gasto
-    clock.ts              // Lógica pura del reloj de jornada
-    closing.ts            // Lógica pura de cierre de jornada y módulo dañado
-    events.ts             // Lectura y helpers puros de eventos (Fuga, Clima, Apagón)
-    glosario.ts           // Términos pedagógicos del glosario bilingüe
-    informe.ts            // Cálculo de Rango y resumen del Informe Final
-    jornadas.ts           // Definición de las 5 jornadas, misiones y eventos
-    missions.ts           // Lógica pura de misiones, costos, elecciones y formato
-    map.ts                // Mapa ASCII, salas, estaciones, colisiones y utilidades
-    pathfinding.ts        // BFS puro sobre la cuadrícula (4 direcciones)
-    semanas.ts            // Definición y utilidades de las 3 semanas lunares
-    settings.ts           // Ajustes persistentes (idioma, textoGrande, movimientoReducido, sonido, volumen, tutorialVisto, ultimaSemana)
-    simulation.ts         // Motor de simulación pura de 5 jornadas con niveles configurables
-    tutorial.ts           // Máquina de estados pura del tutorial interactivo de 7 pasos
+    state.ts              // Single game state, logbook, debug helpers, and typed event emitter
+    balance.ts            // Calibrated balance figures, RANGOS, and visual/audio constants
+    bitacora.ts           // Pure decision logging and main resource-consumption cause tracking
+    clock.ts              // Pure day-clock logic
+    closing.ts            // Pure day-ending and damaged-module logic
+    events.ts             // Pure event reading and helpers (Leak, Space Weather, Power Outage)
+    glosario.ts           // Bilingual educational glossary terms
+    informe.ts            // Rank calculation and Final Report summary
+    jornadas.ts           // Definitions of the 5 days, missions, and events
+    missions.ts           // Pure mission, cost, choice, and formatting logic
+    map.ts                // ASCII map, rooms, stations, collisions, and utilities
+    pathfinding.ts        // Pure BFS on the grid (4 directions)
+    semanas.ts            // Definitions and utilities for the 3 lunar weeks
+    settings.ts           // Persistent settings (idioma, textoGrande, movimientoReducido, sonido, volumen, tutorialVisto, ultimaSemana)
+    simulation.ts         // Pure 5-day simulation engine with configurable intensity levels
+    tutorial.ts           // Pure state machine for the 7-step interactive tutorial
   minigames/
-    types.ts              // Contratos e interfaz común MinigameView
-    registry.ts           // Registro común de los 3 minijuegos
+    types.ts              // Contracts and shared MinigameView interface
+    registry.ts           // Shared registry for the 3 minigames
     nodos.ts / valvulas.ts / escudo.ts
     views/                // NodosView.ts, ValvulasView.ts, EscudoView.ts
   scenes/
-    BootScene.ts          // Genera texturas procedurales y arranca Menú o Demo
-    MenuScene.ts          // Menú inicial con botón de Sonido, ES/EN, Semanas, Demo, Glosario, Fuentes, Ajustes y Créditos
-    SemanaScene.ts        // Selector de 3 semanas lunares + botón Sorpresa
-    FuentesScene.ts       // Pantalla Fuentes y ciencia real
-    GlosarioScene.ts      // Pantalla Glosario lunar bilingüe
-    AjustesScene.ts       // Pantalla Ajustes (ES/EN, Texto grande, Movimiento reducido, Sonido/Volumen, Tutorial)
-    CreditosScene.ts      // Pantalla Créditos y licencias
-    BaseScene.ts          // Mapa, astronauta, misiones, efectos, contador ?perf=1 y atajos ?debug=1
-    HUDScene.ts           // Barras con iconos/estados, reloj en arco, Luni, botón Sonido y Pausa
-    MinigameScene.ts      // Host genérico para los minijuegos del registro
-    ChoiceScene.ts        // Overlay de elecciones tácticas por estación con chips de costo
-    EventScene.ts         // Overlay de eventos de clima espacial con Luni + chips glosario
-    ApagonScene.ts        // Overlay del evento de apagón en Jornada 4
-    OverlayScene.ts       // Pausa (con botón Sonido), secuencias animadas de cierre, fin de demo y evacuación
-    InformeScene.ts       // Informe Final con Rango, bitácora, causa principal y botón copiar
-    TutorialScene.ts      // Overlay interactivo del tutorial de 7 pasos
+    BootScene.ts          // Generates procedural textures and launches Menu or Demo
+    MenuScene.ts          // Main menu with Sound, ES/EN, Weeks, Demo, Glossary, Sources, Settings, and Credits
+    SemanaScene.ts        // Selector for 3 lunar weeks + Surprise button
+    FuentesScene.ts       // Sources and real science screen
+    GlosarioScene.ts      // Bilingual lunar glossary screen
+    AjustesScene.ts       // Settings screen (ES/EN, Large Text, Reduced Motion, Sound/Volume, Tutorial)
+    CreditosScene.ts      // Credits and licenses screen
+    BaseScene.ts          // Map, astronaut, missions, effects, ?perf=1 counter, and ?debug=1 shortcuts
+    HUDScene.ts           // Icon/status bars, arc-shaped timer, Luni, Sound button, and Pause
+    MinigameScene.ts      // Generic host for registered minigames
+    ChoiceScene.ts        // Station-specific tactical choice overlay with cost chips
+    EventScene.ts         // Space-weather event overlay with Luni + glossary chips
+    ApagonScene.ts        // Power-outage event overlay on Day 4
+    OverlayScene.ts       // Pause (with Sound button), animated endings, demo ending, and evacuation
+    InformeScene.ts       // Final Report with rank, logbook, main cause, and copy button
+    TutorialScene.ts      // Interactive 7-step tutorial overlay
   ui/
-    contrast.ts           // Validación WCAG AA de la paleta
-    focus.ts              // Gestor reutilizable de navegación por teclado y anillo >= 3px
-    glosarioModal.ts      // Modal de glosario reutilizable
-    icons.ts              // Iconos vectoriales dibujados con Graphics (incluye sonido)
-    targets.ts            // Registro de coordenadas de objetivos UI por nombre
-    theme.ts              // Paleta visual, tipografías, escalado textoGrande y métricas de UI
+    contrast.ts           // WCAG AA palette contrast validation
+    focus.ts              // Reusable keyboard focus manager with >= 3px focus ring
+    glosarioModal.ts      // Reusable glossary modal
+    icons.ts              // Vector icons drawn with Graphics (including Sound)
+    targets.ts            // Registry of UI target coordinates by name
+    theme.ts              // Visual palette, typography, Large Text scaling, and UI metrics
 tests/
-  audio.test.ts           // Pruebas WebAudio: mute, tope 4 voces, cooldown 150ms y resiliencia
-  bitacora.test.ts        // Pruebas de registro y causa principal de gasto
-  closing.test.ts         // Pruebas de cierre, módulo dañado, refuerzo, eventos y Demo
-  contrast.test.ts        // Pruebas de contraste WCAG, escala textoGrande y targets UI
-  creditos.test.ts        // Pruebas de créditos y licencias
-  efectos.test.ts         // Pruebas puras de estados visuales y límites de partículas/temblor
-  escudo.test.ts          // Pruebas de rotación, cobertura y resolución de Escudo
-  eventos.test.ts         // Pruebas de eventosLoader, sello de archivo, restricción J3 y 3 semanas
-  glosario.test.ts        // Pruebas de términos y cobertura ES/EN del glosario
-  i18n.test.ts            // Pruebas de paridad de claves, placeholders e interpolación ES/EN
-  informe.test.ts         // Pruebas de cálculo de Rango y resumen final
-  jornadas.test.ts        // Validación estructural de las 5 jornadas, pasos y elecciones
-  mascota.test.ts         // Pruebas puras de estados de ánimo de Luni
-  missions.test.ts        // Pruebas de misiones, costos y flujo por estación
-  no-red.test.ts          // Verificación estática de cero red/fetch/URLs externas en src/
-  nodos.test.ts           // Pruebas de generación, rotación y circuito de Nodos
-  osdr.test.ts            // Pruebas de cargador OSDR con sello honesto
-  pathfinding.test.ts     // Pruebas de pathfinding BFS y colisiones lógicas
-  settings.test.ts        // Pruebas de persistencia y suscripción de ajustes (incluye sonido/volumen)
-  simulation.test.ts      // Simulación matemática 4x3 y verificación de no-dominancia
-  state.test.ts           // Pruebas del estado único, drenaje y pausa
-  tutorial.test.ts        // Pruebas del tutorial interactivo de 7 pasos y reglas de pausa
-  valvulas.test.ts        // Pruebas de secuencia, medidor y límites de Válvulas
+  audio.test.ts           // WebAudio tests: mute, 4-voice cap, 150ms cooldown, and resilience
+  bitacora.test.ts        // Decision logging and primary resource-consumption cause tests
+  closing.test.ts        // Day-ending, damaged-module, boost, event, and Demo tests
+  contrast.test.ts       // WCAG contrast, Large Text scaling, and UI target tests
+  creditos.test.ts       // Credits and license tests
+  efectos.test.ts        // Pure visual-state and particle/shake limit tests
+  escudo.test.ts         // Shield rotation, coverage, and completion tests
+  eventos.test.ts        // eventosLoader, archive label, D3 restriction, and 3-week tests
+  glosario.test.ts       // Glossary term and ES/EN coverage tests
+  i18n.test.ts           // ES/EN key parity, placeholder, and interpolation tests
+  informe.test.ts        // Rank calculation and Final Report summary tests
+  jornadas.test.ts       // Structural validation of the 5 days, steps, and choices
+  mascota.test.ts        // Pure Luni mood-state tests
+  missions.test.ts       // Mission, cost, and station-flow tests
+  no-red.test.ts         // Static check for no network/fetch/external URLs in src/
+  nodos.test.ts          // Node generation, rotation, and circuit tests
+  osdr.test.ts           // OSDR loader and transparent labeling tests
+  pathfinding.test.ts    // BFS pathfinding and logical collision tests
+  settings.test.ts       // Settings persistence and subscription tests (including sound/volume)
+  simulation.test.ts     // 4x3 mathematical simulation and non-dominance tests
+  state.test.ts          // Single-state, resource-drain, and pause tests
+  tutorial.test.ts       // 7-step interactive tutorial and pause-rule tests
+  valvulas.test.ts       // Valve sequence, gauge, and limit tests
 ```
