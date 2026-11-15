@@ -194,11 +194,19 @@ export class BaseScene extends Phaser.Scene {
     const snap = gameState.getSnapshot();
     const pausadoTutorial = tutorialManager.estaPausandoReloj();
 
-    if (snap.estado === 'jugando' && !snap.pausado && !pausadoTutorial) {
+    const puedeAvanzarReloj =
+      (snap.estado === 'jugando' || snap.estado === 'minijuego') &&
+      !snap.pausado &&
+      !pausadoTutorial;
+
+    if (puedeAvanzarReloj) {
       const multTiempo = this.modoDebug
         ? DEBUG_VELOCIDADES[this.debugVelocidadIdx]
         : 1;
       gameState.tick(dtSeg * multTiempo);
+    }
+
+    if (snap.estado === 'jugando' && !snap.pausado && !pausadoTutorial) {
       this.actualizarMovimiento(dtSeg);
       this.actualizarEstacionCercana();
     } else {
@@ -1003,7 +1011,7 @@ export class BaseScene extends Phaser.Scene {
         fontSize: `${TAMANOS_TEXTO.minimo}px`,
         fontStyle: 'bold',
         color: COLORES_HEX.aire,
-        backgroundColor: '#0A1326',
+        backgroundColor: COLORES_HEX.pistaBarra,
         padding: { x: 8, y: 4 },
       })
       .setOrigin(1, 0.5)

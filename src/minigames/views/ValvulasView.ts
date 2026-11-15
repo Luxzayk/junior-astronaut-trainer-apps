@@ -255,12 +255,15 @@ export class ValvulasView implements MinigameView {
         return;
       }
       if (ev.code === 'ArrowLeft' || ev.code === 'ArrowUp') {
+        ev.preventDefault();
         this.focusVisualIdx = (this.focusVisualIdx - 1 + total) % total;
         this.redibujarNodos();
       } else if (ev.code === 'ArrowRight' || ev.code === 'ArrowDown') {
+        ev.preventDefault();
         this.focusVisualIdx = (this.focusVisualIdx + 1) % total;
         this.redibujarNodos();
       } else if (ev.code === 'Space' || ev.code === 'Enter') {
+        ev.preventDefault();
         const nodo = this.nodos[this.focusVisualIdx];
         if (nodo) {
           this.intentarCerrar(nodo.item.id);

@@ -94,71 +94,88 @@ export class GlosarioScene extends Phaser.Scene {
     this.scrollContenedor.setMask(mascara);
 
     const cardW = 520;
-    const cardH = textoGrande ? 174 : 150;
+    const altoMinimo = textoGrande ? 174 : 150;
     const gapX = 28;
     const gapY = 18;
     const xCol0 = cx - cardW / 2 - gapX / 2;
     const xCol1 = cx + cardW / 2 + gapX / 2;
 
-    TERMINOS_GLOSARIO.forEach((termino, idx) => {
-      const col = idx % 2;
-      const row = Math.floor(idx / 2);
-      const cardCx = col === 0 ? xCol0 : xCol1;
-      const yTop = 10 + row * (cardH + gapY);
-
-      const g = this.add.graphics();
-      g.fillStyle(COLORES.panelHud, 1);
-      g.fillRoundedRect(
-        cardCx - cardW / 2,
-        yTop,
-        cardW,
-        cardH,
-        ESPACIADO.radioPanel,
-      );
-      g.lineStyle(2, COLORES.bordePanel, 1);
-      g.strokeRoundedRect(
-        cardCx - cardW / 2,
-        yTop,
-        cardW,
-        cardH,
-        ESPACIADO.radioPanel,
-      );
-
-      dibujarIconoLobby(
-        g,
-        cardCx - cardW / 2 + 28,
-        yTop + 30,
-        22,
-        COLORES.aire,
-      );
-
-      const txtNombre = this.add
-        .text(cardCx - cardW / 2 + 48, yTop + 30, termino.nombre[idioma], {
-          fontFamily: FUENTE_FAMILIA,
-          fontSize: `${escalarTamanoTexto(21, textoGrande, 24)}px`,
-          fontStyle: 'bold',
-          color: COLORES_HEX.aire,
-          wordWrap: { width: cardW - 68 },
-        })
-        .setOrigin(0, 0.5);
-
-      const txtDef = this.add
-        .text(cardCx - cardW / 2 + 22, yTop + 56, termino.definicion[idioma], {
-          fontFamily: FUENTE_FAMILIA,
-          fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20)}px`,
-          fontStyle: 'normal',
-          color: COLORES_HEX.textoPrincipal,
-          lineSpacing: 5,
-          wordWrap: { width: cardW - 44 },
-        })
-        .setOrigin(0, 0);
-
-      this.scrollContenedor?.add([g, txtNombre, txtDef]);
-    });
-
     const totalFilas = Math.ceil(TERMINOS_GLOSARIO.length / 2);
-    const totalAlto = 10 + totalFilas * (cardH + gapY);
-    this.maxScroll = Math.max(0, totalAlto - this.viewportAlto);
+    let yCursor = 10;
+
+    for (let fila = 0; fila < totalFilas; fila++) {
+      const pares = [
+        TERMINOS_GLOSARIO[fila * 2],
+        TERMINOS_GLOSARIO[fila * 2 + 1],
+      ].filter((item): item is (typeof TERMINOS_GLOSARIO)[number] => Boolean(item));
+
+      const creados = pares.map((termino, col) => {
+        const cardCx = col === 0 ? xCol0 : xCol1;
+        const txtNombre = this.add
+          .text(cardCx - cardW / 2 + 48, yCursor + 18, termino.nombre[idioma], {
+            fontFamily: FUENTE_FAMILIA,
+            fontSize: `${escalarTamanoTexto(21, textoGrande, 24)}px`,
+            fontStyle: 'bold',
+            color: COLORES_HEX.aire,
+            wordWrap: { width: cardW - 68 },
+          })
+          .setOrigin(0, 0);
+
+        const yDef = Math.max(yCursor + 54, txtNombre.y + txtNombre.height + 10);
+        const txtDef = this.add
+          .text(cardCx - cardW / 2 + 22, yDef, termino.definicion[idioma], {
+            fontFamily: FUENTE_FAMILIA,
+            fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20)}px`,
+            fontStyle: 'normal',
+            color: COLORES_HEX.textoPrincipal,
+            lineSpacing: 5,
+            wordWrap: { width: cardW - 44 },
+          })
+          .setOrigin(0, 0);
+
+        const altoNecesario = Math.ceil(txtDef.y + txtDef.height - yCursor + 18);
+        return { cardCx, txtNombre, txtDef, altoNecesario };
+      });
+
+      const rowH = Math.max(
+        altoMinimo,
+        ...creados.map((item) => item.altoNecesario),
+      );
+
+      for (const item of creados) {
+        const g = this.add.graphics();
+        g.fillStyle(COLORES.panelHud, 1);
+        g.fillRoundedRect(
+          item.cardCx - cardW / 2,
+          yCursor,
+          cardW,
+          rowH,
+          ESPACIADO.radioPanel,
+        );
+        g.lineStyle(2, COLORES.bordePanel, 1);
+        g.strokeRoundedRect(
+          item.cardCx - cardW / 2,
+          yCursor,
+          cardW,
+          rowH,
+          ESPACIADO.radioPanel,
+        );
+
+        dibujarIconoLobby(
+          g,
+          item.cardCx - cardW / 2 + 28,
+          yCursor + 30,
+          22,
+          COLORES.aire,
+        );
+
+        this.scrollContenedor?.add([g, item.txtNombre, item.txtDef]);
+      }
+
+      yCursor += rowH + gapY;
+    }
+
+    this.maxScroll = Math.max(0, yCursor - this.viewportAlto);
 
     this.barraScroll = this.add.graphics();
     this.actualizarScrollVisual();

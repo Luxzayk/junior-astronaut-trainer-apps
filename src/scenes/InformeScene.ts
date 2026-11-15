@@ -882,7 +882,7 @@ export class InformeScene extends Phaser.Scene {
       textarea.style.height = '180px';
       textarea.style.padding = '12px';
       textarea.style.fontFamily = 'Nunito, sans-serif';
-      textarea.style.fontSize = '18px';
+      textarea.style.fontSize = `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, getAjustes().textoGrande, 22)}px`;
       textarea.style.background = COLORES_HEX.pistaBarra;
       textarea.style.color = COLORES_HEX.textoPrincipal;
       textarea.style.border = `2px solid ${COLORES_HEX.energia}`;

@@ -22,9 +22,11 @@ describe('Datos de Créditos y Licencias', () => {
     expect(DATOS_CREDITOS.tipografia.es).toContain('Nunito');
     expect(DATOS_CREDITOS.tipografia.es).toContain('OFL');
     expect(DATOS_CREDITOS.avisoIA.es).toContain('herramientas de IA');
-    expect(DATOS_CREDITOS.equipo.some((item) => item.includes('[nombre]'))).toBe(
-      false,
-    );
+    expect(
+      DATOS_CREDITOS.equipo.every(
+        (item) => !item.includes('[') && !item.includes(']'),
+      ),
+    ).toBe(true);
   });
 
   it('genera secciones completas para ambos idiomas con el aviso destacado', () => {

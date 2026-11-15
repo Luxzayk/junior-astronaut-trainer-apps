@@ -279,12 +279,15 @@ export class EscudoView implements MinigameView {
         return;
       }
       if (ev.code === 'ArrowLeft' || ev.code === 'ArrowUp') {
+        ev.preventDefault();
         this.focusIdx = (this.focusIdx - 1 + total) % total;
         this.redibujarPaneles();
       } else if (ev.code === 'ArrowRight' || ev.code === 'ArrowDown') {
+        ev.preventDefault();
         this.focusIdx = (this.focusIdx + 1) % total;
         this.redibujarPaneles();
       } else if (ev.code === 'Space' || ev.code === 'Enter') {
+        ev.preventDefault();
         const panel = this.panelesVisuales[this.focusIdx];
         if (panel) {
           this.girarPanel(panel.id);

@@ -76,7 +76,9 @@ export function obtenerNombreEstacion(estacionId: SalaId): string {
 export const SALAS: readonly DefinicionSala[] = [
   {
     id: 'escudos',
-    nombre: t('salas.escudos'),
+    get nombre(): string {
+      return t('salas.escudos');
+    },
     colInicio: 8,
     colFin: 11,
     filaInicio: 0,
@@ -86,7 +88,9 @@ export const SALAS: readonly DefinicionSala[] = [
   },
   {
     id: 'tanque',
-    nombre: t('salas.tanque'),
+    get nombre(): string {
+      return t('salas.tanque');
+    },
     colInicio: 14,
     colFin: 18,
     filaInicio: 0,
@@ -96,7 +100,9 @@ export const SALAS: readonly DefinicionSala[] = [
   },
   {
     id: 'energia',
-    nombre: t('salas.energia'),
+    get nombre(): string {
+      return t('salas.energia');
+    },
     colInicio: 1,
     colFin: 5,
     filaInicio: 4,
@@ -105,7 +111,9 @@ export const SALAS: readonly DefinicionSala[] = [
   },
   {
     id: 'lobby',
-    nombre: t('salas.lobby'),
+    get nombre(): string {
+      return t('salas.lobby');
+    },
     colInicio: 8,
     colFin: 11,
     filaInicio: 4,
@@ -114,7 +122,9 @@ export const SALAS: readonly DefinicionSala[] = [
   },
   {
     id: 'invernadero',
-    nombre: t('salas.invernadero'),
+    get nombre(): string {
+      return t('salas.invernadero');
+    },
     colInicio: 14,
     colFin: 18,
     filaInicio: 4,
@@ -123,7 +133,9 @@ export const SALAS: readonly DefinicionSala[] = [
   },
   {
     id: 'refugio',
-    nombre: t('salas.refugio'),
+    get nombre(): string {
+      return t('salas.refugio');
+    },
     colInicio: 8,
     colFin: 11,
     filaInicio: 8,
@@ -136,7 +148,9 @@ export const ESTACIONES: readonly DefinicionEstacion[] = [
   {
     id: 'energia',
     salaId: 'energia',
-    nombre: t('estaciones.energia'),
+    get nombre(): string {
+      return t('estaciones.energia');
+    },
     tile: { col: 1, fila: 5 },
     colorAcento: COLORES.energia,
     recurso: 'energia',
@@ -144,7 +158,9 @@ export const ESTACIONES: readonly DefinicionEstacion[] = [
   {
     id: 'invernadero',
     salaId: 'invernadero',
-    nombre: t('estaciones.invernadero'),
+    get nombre(): string {
+      return t('estaciones.invernadero');
+    },
     tile: { col: 18, fila: 5 },
     colorAcento: COLORES.aire,
     recurso: 'aire',
@@ -152,7 +168,9 @@ export const ESTACIONES: readonly DefinicionEstacion[] = [
   {
     id: 'escudos',
     salaId: 'escudos',
-    nombre: t('estaciones.escudos'),
+    get nombre(): string {
+      return t('estaciones.escudos');
+    },
     tile: { col: 9, fila: 0 },
     colorAcento: COLORES.escudo,
     recurso: 'escudo',
@@ -160,21 +178,27 @@ export const ESTACIONES: readonly DefinicionEstacion[] = [
   {
     id: 'tanque',
     salaId: 'tanque',
-    nombre: t('estaciones.tanque'),
+    get nombre(): string {
+      return t('estaciones.tanque');
+    },
     tile: { col: 14, fila: 0 },
     colorAcento: COLORES.tanque,
   },
   {
     id: 'lobby',
     salaId: 'lobby',
-    nombre: t('estaciones.lobby'),
+    get nombre(): string {
+      return t('estaciones.lobby');
+    },
     tile: { col: 9, fila: 5 },
     colorAcento: COLORES.lobby,
   },
   {
     id: 'refugio',
     salaId: 'refugio',
-    nombre: t('estaciones.refugio'),
+    get nombre(): string {
+      return t('estaciones.refugio');
+    },
     tile: { col: 9, fila: 9 },
     colorAcento: COLORES.refugio,
   },

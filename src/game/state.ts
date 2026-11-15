@@ -571,7 +571,9 @@ export class GameStateManager {
   }
 
   public tick(dtSeg: number): void {
-    if (this.state.estado !== 'jugando' || this.state.pausado || dtSeg <= 0) {
+    const enJuegoOMinijuego =
+      this.state.estado === 'jugando' || this.state.estado === 'minijuego';
+    if (!enJuegoOMinijuego || this.state.pausado || dtSeg <= 0) {
       return;
     }
 
@@ -659,7 +661,11 @@ export class GameStateManager {
     }
 
     const eventoDef = obtenerEventoDeJornada(this.state.jornada);
-    if (eventoDef && !this.state.eventoDisparadoEnJornada) {
+    if (
+      eventoDef &&
+      !this.state.eventoDisparadoEnJornada &&
+      this.state.estado === 'jugando'
+    ) {
       const segundoObjetivo =
         this.state.modo === 'demo' ? DEMO_EVENTO_SEGUNDO : eventoDef.segundo;
       if (
@@ -767,6 +773,7 @@ export class GameStateManager {
       nombre === 'aire' &&
       this.state.aire <= 0 &&
       (this.state.estado === 'jugando' ||
+        this.state.estado === 'minijuego' ||
         this.state.estado === 'eleccion' ||
         this.state.estado === 'evento' ||
         this.state.estado === 'apagon')
@@ -937,7 +944,12 @@ export class GameStateManager {
         return;
       }
 
-      if (misionId && !mision) {
+      if (
+        misionId &&
+        !mision &&
+        !this.state.misionesPerdidas.includes(misionId) &&
+        !misionId.includes('fuga_tanque')
+      ) {
         this.state.estado = 'eleccion';
         this.emit('estado:cambio', { estado: this.state.estado });
         this.emit('eleccion:abrir', {

@@ -127,12 +127,11 @@ export class FuentesScene extends Phaser.Scene {
         .filter((s) => s.length > 0)
         .join('\n');
 
-      const altoCard = textoGrande ? 190 : 164;
-      this.agregarTarjetaInformativa(
+      const altoCard = this.agregarTarjetaInformativa(
         cx,
         yCursor,
         cardW,
-        altoCard,
+        textoGrande ? 176 : 152,
         fuente.titulo[idioma],
         etiquetaTipo,
         fuente.tipo === 'archivo' ? COLORES.aire : COLORES.energia,
@@ -146,12 +145,11 @@ export class FuentesScene extends Phaser.Scene {
     const lineasVentanas = SEMANAS.map(
       (s) => `• ${s.nombre[idioma]}: ${formatearVentanaSemana(s, idioma)}`,
     ).join('\n');
-    const altoVentanas = textoGrande ? 176 : 152;
-    this.agregarTarjetaInformativa(
+    const altoVentanas = this.agregarTarjetaInformativa(
       cx,
       yCursor,
       cardW,
-      altoVentanas,
+      textoGrande ? 168 : 144,
       t('fuentes.ventanasTitulo'),
       t('fuentes.etiquetaArchivo'),
       COLORES.aire,
@@ -162,12 +160,10 @@ export class FuentesScene extends Phaser.Scene {
 
     // 3. Estado de los 6 eventos
     const eventos = localEventosProvider.obtenerTodos();
-    const altoEventos = 84 + Math.max(1, eventos.length) * (textoGrande ? 42 : 34);
-    this.agregarTarjetaEventos(
+    const altoEventos = this.agregarTarjetaEventos(
       cx,
       yCursor,
       cardW,
-      altoEventos,
       eventos,
       idioma,
       textoGrande,
@@ -175,12 +171,11 @@ export class FuentesScene extends Phaser.Scene {
     yCursor += altoEventos + 16;
 
     // 4. Regla orientativa de nivel + aviso sin red
-    const altoRegla = textoGrande ? 154 : 134;
-    this.agregarTarjetaInformativa(
+    const altoRegla = this.agregarTarjetaInformativa(
       cx,
       yCursor,
       cardW,
-      altoRegla,
+      textoGrande ? 150 : 128,
       t('fuentes.reglaNivelTitulo'),
       t('fuentes.etiquetaBalance'),
       COLORES.escudo,
@@ -230,24 +225,66 @@ export class FuentesScene extends Phaser.Scene {
     cx: number,
     yTop: number,
     ancho: number,
-    alto: number,
+    altoMinimo: number,
     titulo: string,
     tagTexto: string,
     colorAcento: number,
     cuerpo: string,
     textoGrande: boolean,
-  ): void {
+  ): number {
     if (!this.scrollContenedor) {
-      return;
+      return altoMinimo;
     }
     const left = cx - ancho / 2;
+    const tagW = Math.min(240, Math.max(136, tagTexto.length * 11 + 28));
+
+    const txtTag = this.add
+      .text(left + ancho - tagW / 2 - 18, yTop + 30, tagTexto, {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${TAMANOS_TEXTO.minimo}px`,
+        fontStyle: 'bold',
+        color:
+          colorAcento === COLORES.aire
+            ? COLORES_HEX.aire
+            : colorAcento === COLORES.escudo
+              ? COLORES_HEX.escudo
+              : COLORES_HEX.energia,
+      })
+      .setOrigin(0.5);
+
+    const txtTitulo = this.add
+      .text(left + 22, yTop + 18, titulo, {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${escalarTamanoTexto(21, textoGrande, 25)}px`,
+        fontStyle: 'bold',
+        color: COLORES_HEX.textoPrincipal,
+        wordWrap: { width: ancho - tagW - 60 },
+      })
+      .setOrigin(0, 0);
+
+    const yCuerpo = Math.max(yTop + 56, txtTitulo.y + txtTitulo.height + 12);
+    const txtCuerpo = this.add
+      .text(left + 22, yCuerpo, cuerpo, {
+        fontFamily: FUENTE_FAMILIA,
+        fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 21)}px`,
+        fontStyle: 'normal',
+        color: COLORES_HEX.textoSecundario,
+        lineSpacing: 6,
+        wordWrap: { width: ancho - 44 },
+      })
+      .setOrigin(0, 0);
+
+    const alto = Math.max(
+      altoMinimo,
+      Math.ceil(txtCuerpo.y + txtCuerpo.height - yTop + 18),
+    );
+
     const g = this.add.graphics();
     g.fillStyle(COLORES.panelHud, 1);
     g.fillRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
     g.lineStyle(2, COLORES.bordePanel, 1);
     g.strokeRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
 
-    const tagW = Math.min(220, Math.max(136, tagTexto.length * 11 + 28));
     g.fillStyle(COLORES.pistaBarra, 1);
     g.fillRoundedRect(
       left + ancho - tagW - 18,
@@ -265,84 +302,38 @@ export class FuentesScene extends Phaser.Scene {
       ESPACIADO.radioBarra,
     );
 
-    const txtTag = this.add
-      .text(left + ancho - tagW / 2 - 18, yTop + 30, tagTexto, {
-        fontFamily: FUENTE_FAMILIA,
-        fontSize: `${TAMANOS_TEXTO.minimo}px`,
-        fontStyle: 'bold',
-        color:
-          colorAcento === COLORES.aire
-            ? COLORES_HEX.aire
-            : colorAcento === COLORES.escudo
-              ? COLORES_HEX.escudo
-              : COLORES_HEX.energia,
-      })
-      .setOrigin(0.5);
-
-    const txtTitulo = this.add
-      .text(left + 22, yTop + 30, titulo, {
-        fontFamily: FUENTE_FAMILIA,
-        fontSize: `${escalarTamanoTexto(21, textoGrande, 25)}px`,
-        fontStyle: 'bold',
-        color: COLORES_HEX.textoPrincipal,
-        wordWrap: { width: ancho - tagW - 60 },
-      })
-      .setOrigin(0, 0.5);
-
-    const txtCuerpo = this.add
-      .text(left + 22, yTop + 58, cuerpo, {
-        fontFamily: FUENTE_FAMILIA,
-        fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 21)}px`,
-        fontStyle: 'normal',
-        color: COLORES_HEX.textoSecundario,
-        lineSpacing: 6,
-        wordWrap: { width: ancho - 44 },
-      })
-      .setOrigin(0, 0);
-
     this.scrollContenedor.add([g, txtTag, txtTitulo, txtCuerpo]);
+    return alto;
   }
 
   private agregarTarjetaEventos(
     cx: number,
     yTop: number,
     ancho: number,
-    alto: number,
     eventos: ReturnType<typeof localEventosProvider.obtenerTodos>,
     idioma: 'es' | 'en',
     textoGrande: boolean,
-  ): void {
+  ): number {
     if (!this.scrollContenedor) {
-      return;
+      return 120;
     }
     const left = cx - ancho / 2;
-    const g = this.add.graphics();
-    g.fillStyle(COLORES.panelHud, 1);
-    g.fillRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
-    g.lineStyle(2, COLORES.bordePanel, 1);
-    g.strokeRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
-
     const txtTitulo = this.add
-      .text(left + 22, yTop + 28, t('fuentes.eventosTitulo'), {
+      .text(left + 22, yTop + 18, t('fuentes.eventosTitulo'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(21, textoGrande, 25)}px`,
         fontStyle: 'bold',
         color: COLORES_HEX.textoPrincipal,
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0);
 
-    this.scrollContenedor.add([g, txtTitulo]);
+    const gIconos = this.add.graphics();
+    const textosFila: Phaser.GameObjects.Text[] = [];
+    let fy = Math.max(yTop + 56, txtTitulo.y + txtTitulo.height + 14);
+    const pasoMin = textoGrande ? 34 : 28;
 
-    const pasoFila = textoGrande ? 40 : 34;
-    eventos.forEach((ev, idx) => {
-      const fy = yTop + 68 + idx * pasoFila;
+    eventos.forEach((ev) => {
       const verificado = !ev.esEjemplo;
-      if (verificado) {
-        dibujarIconoMisionLista(g, left + 34, fy, 18, COLORES.ok);
-      } else {
-        dibujarIconoMisionActiva(g, left + 34, fy, 18, COLORES.energia);
-      }
-
       const etiqueta = `${ev.id} (${ev.tipo} · ${ev.nivel}) — ${obtenerEtiquetaSelloEvento(ev, idioma)}`;
       const txtFila = this.add
         .text(left + 54, fy, etiqueta, {
@@ -352,9 +343,34 @@ export class FuentesScene extends Phaser.Scene {
           color: verificado ? COLORES_HEX.ok : COLORES_HEX.textoSecundario,
           wordWrap: { width: ancho - 76 },
         })
-        .setOrigin(0, 0.5);
-      this.scrollContenedor?.add(txtFila);
+        .setOrigin(0, 0);
+
+      const centroIconoY = fy + Math.min(14, txtFila.height / 2);
+      if (verificado) {
+        dibujarIconoMisionLista(gIconos, left + 34, centroIconoY, 18, COLORES.ok);
+      } else {
+        dibujarIconoMisionActiva(
+          gIconos,
+          left + 34,
+          centroIconoY,
+          18,
+          COLORES.energia,
+        );
+      }
+
+      textosFila.push(txtFila);
+      fy += Math.max(pasoMin, Math.ceil(txtFila.height) + 10);
     });
+
+    const alto = Math.max(108, Math.ceil(fy - yTop + 12));
+    const gFondo = this.add.graphics();
+    gFondo.fillStyle(COLORES.panelHud, 1);
+    gFondo.fillRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
+    gFondo.lineStyle(2, COLORES.bordePanel, 1);
+    gFondo.strokeRoundedRect(left, yTop, ancho, alto, ESPACIADO.radioPanel);
+
+    this.scrollContenedor.add([gFondo, txtTitulo, gIconos, ...textosFila]);
+    return alto;
   }
 
   private configurarScroll(): void {

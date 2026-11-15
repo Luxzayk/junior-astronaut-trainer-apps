@@ -18,6 +18,7 @@ const PREFIJOS_URL_PERMITIDOS = [
   'http://www.w3.org',
   'https://api.nasa.gov',
   'https://ccmc.gsfc.nasa.gov',
+  'https://kauai.ccmc.gsfc.nasa.gov',
   'https://osdr.nasa.gov',
   'https://github.com/phaserjs',
   'https://github.com/photonstorm',

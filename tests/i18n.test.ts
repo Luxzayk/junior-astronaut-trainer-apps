@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { JORNADAS, OPCIONES_POR_TIPO_ELECCION } from '../src/game/jornadas';
+import { ESTACIONES, SALAS } from '../src/game/map';
 import { resetAjustes, updateAjustes } from '../src/game/settings';
 import {
   interpolarPlantilla,
@@ -92,5 +94,22 @@ describe('Sistema bilingüe i18n (ES/EN)', () => {
 
     const claveInvalida = 'inexistente.clave' as ClaveI18n;
     expect(t(claveInvalida)).toBe('inexistente.clave');
+  });
+
+  it('actualiza dinámicamente salas, estaciones, jornadas y opciones al cambiar idioma', () => {
+    updateAjustes({ idioma: 'en' });
+    expect(SALAS[0].nombre).toBe(t('salas.escudos', undefined, 'en'));
+    expect(ESTACIONES[0].nombre).toBe(t('estaciones.energia', undefined, 'en'));
+    expect(JORNADAS[0].titulo).toBe(t('misiones.j1Titulo', undefined, 'en'));
+    expect(JORNADAS[0].misiones[0].titulo).toBe(
+      t('misiones.j1EnergiaTitulo', undefined, 'en'),
+    );
+    expect(OPCIONES_POR_TIPO_ELECCION.envio_energia[0].titulo).toBe(
+      t('eleccionEnergia.mandarAireTitulo', undefined, 'en'),
+    );
+
+    updateAjustes({ idioma: 'es' });
+    expect(SALAS[0].nombre).toBe(t('salas.escudos', undefined, 'es'));
+    expect(JORNADAS[0].titulo).toBe(t('misiones.j1Titulo', undefined, 'es'));
   });
 });

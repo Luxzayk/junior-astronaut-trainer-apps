@@ -22,6 +22,7 @@ import {
 } from '../game/clock';
 import { gameState, type ModoJuego, type RecursoNombre } from '../game/state';
 import { getAjustes, suscribirAjustes, updateAjustes } from '../game/settings';
+import { tutorialManager } from '../game/tutorial';
 import { t } from '../i18n';
 import {
   dibujarIconoAire,
@@ -312,7 +313,7 @@ export class HUDScene extends Phaser.Scene {
 
   private crearMascotaHud(): void {
     this.widgetLuni = crearWidgetMascota(this, {
-      x: 956,
+      x: 946,
       y: HUD_H / 2 + 2,
       escala: 0.7,
       estadoInicial: 'contenta',
@@ -344,21 +345,22 @@ export class HUDScene extends Phaser.Scene {
   }
 
   private crearBotonSonido(): void {
-    const tam = 56;
+    const tam = 58;
     const cx =
       GAME_WIDTH -
       HUD_METRICAS.botonPausaMargenDer -
       HUD_METRICAS.botonPausaTamano -
-      12 -
+      10 -
       tam / 2;
     const cy = HUD_H / 2;
+    const textoGrande = getAjustes().textoGrande;
 
     this.fondoBotonSonido = this.add.graphics();
     this.iconoBotonSonido = this.add.graphics();
     this.textoBotonSonido = this.add
-      .text(cx, cy + 16, '', {
+      .text(cx, cy + 14, '', {
         fontFamily: FUENTE_FAMILIA,
-        fontSize: '14px',
+        fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20)}px`,
         fontStyle: 'bold',
         color: COLORES_HEX.textoPrincipal,
       })
@@ -392,10 +394,10 @@ export class HUDScene extends Phaser.Scene {
     cx = GAME_WIDTH -
       HUD_METRICAS.botonPausaMargenDer -
       HUD_METRICAS.botonPausaTamano -
-      12 -
-      28,
+      10 -
+      29,
     cy = HUD_H / 2,
-    tam = 56,
+    tam = 58,
   ): void {
     if (
       !this.fondoBotonSonido ||
@@ -404,7 +406,8 @@ export class HUDScene extends Phaser.Scene {
     ) {
       return;
     }
-    const activo = getAjustes().sonido;
+    const ajustes = getAjustes();
+    const activo = ajustes.sonido;
     this.fondoBotonSonido.clear();
     this.fondoBotonSonido.fillStyle(
       this.sonidoHover ? COLORES.botonHover : COLORES.botonFondo,
@@ -434,10 +437,13 @@ export class HUDScene extends Phaser.Scene {
     dibujarIconoSonido(
       this.iconoBotonSonido,
       cx,
-      cy - 7,
-      22,
+      cy - 10,
+      20,
       activo ? COLORES.aire : COLORES.textoSecundario,
       activo,
+    );
+    this.textoBotonSonido.setFontSize(
+      escalarTamanoTexto(TAMANOS_TEXTO.minimo, ajustes.textoGrande, 20),
     );
     this.textoBotonSonido.setText(
       activo ? t('sonido.onCorto') : t('sonido.offCorto'),
@@ -523,8 +529,12 @@ export class HUDScene extends Phaser.Scene {
         const subescenaPausaAbierta =
           this.scene.isActive(SCENE_KEYS.ajustes) ||
           this.scene.isActive(SCENE_KEYS.glosario) ||
-          this.scene.isActive(SCENE_KEYS.fuentes);
+          this.scene.isActive(SCENE_KEYS.fuentes) ||
+          this.scene.isActive(SCENE_KEYS.creditos);
         if (subescenaPausaAbierta) {
+          return;
+        }
+        if (evento.code === 'Escape' && tutorialManager.estaPausandoReloj()) {
           return;
         }
         const snap = gameState.getSnapshot();

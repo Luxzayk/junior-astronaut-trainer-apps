@@ -95,7 +95,9 @@ export interface OpcionEleccion {
 export const JORNADAS: readonly DefinicionJornada[] = [
   {
     jornada: 1,
-    titulo: t('misiones.j1Titulo'),
+    get titulo(): string {
+      return t('misiones.j1Titulo');
+    },
     tituloClave: 'misiones.j1Titulo',
     misiones: [
       {
@@ -106,8 +108,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 3,
         tiempoLimite: 60,
         eleccion: 'envio_energia',
-        titulo: t('misiones.j1EnergiaTitulo'),
-        descripcionCorta: t('misiones.j1EnergiaDesc'),
+        get titulo(): string {
+          return t('misiones.j1EnergiaTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j1EnergiaDesc');
+        },
         tituloClave: 'misiones.j1EnergiaTitulo',
         descripcionClave: 'misiones.j1EnergiaDesc',
         obligatoria: true,
@@ -117,7 +123,9 @@ export const JORNADAS: readonly DefinicionJornada[] = [
   },
   {
     jornada: 2,
-    titulo: t('misiones.j2Titulo'),
+    get titulo(): string {
+      return t('misiones.j2Titulo');
+    },
     tituloClave: 'misiones.j2Titulo',
     misiones: [
       {
@@ -128,8 +136,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 3,
         tiempoLimite: 35,
         eleccion: 'invernadero',
-        titulo: t('misiones.j2InvernaderoTitulo'),
-        descripcionCorta: t('misiones.j2InvernaderoDesc'),
+        get titulo(): string {
+          return t('misiones.j2InvernaderoTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j2InvernaderoDesc');
+        },
         tituloClave: 'misiones.j2InvernaderoTitulo',
         descripcionClave: 'misiones.j2InvernaderoDesc',
         obligatoria: true,
@@ -145,7 +157,9 @@ export const JORNADAS: readonly DefinicionJornada[] = [
   },
   {
     jornada: 3,
-    titulo: t('misiones.j3Titulo'),
+    get titulo(): string {
+      return t('misiones.j3Titulo');
+    },
     tituloClave: 'misiones.j3Titulo',
     misiones: [
       {
@@ -156,8 +170,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 3,
         tiempoLimite: 60,
         eleccion: 'envio_energia',
-        titulo: t('misiones.j3EnergiaTitulo'),
-        descripcionCorta: t('misiones.j3EnergiaDesc'),
+        get titulo(): string {
+          return t('misiones.j3EnergiaTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j3EnergiaDesc');
+        },
         tituloClave: 'misiones.j3EnergiaTitulo',
         descripcionClave: 'misiones.j3EnergiaDesc',
         obligatoria: true,
@@ -170,8 +188,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 3,
         tiempoLimite: 35,
         eleccion: 'escudo_potencia',
-        titulo: t('misiones.j3EscudosTitulo'),
-        descripcionCorta: t('misiones.j3EscudosDesc'),
+        get titulo(): string {
+          return t('misiones.j3EscudosTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j3EscudosDesc');
+        },
         tituloClave: 'misiones.j3EscudosTitulo',
         descripcionClave: 'misiones.j3EscudosDesc',
         obligatoria: true,
@@ -186,7 +208,9 @@ export const JORNADAS: readonly DefinicionJornada[] = [
   },
   {
     jornada: 4,
-    titulo: t('misiones.j4Titulo'),
+    get titulo(): string {
+      return t('misiones.j4Titulo');
+    },
     tituloClave: 'misiones.j4Titulo',
     misiones: [
       {
@@ -197,8 +221,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 4,
         tiempoLimite: 55,
         eleccion: 'envio_energia',
-        titulo: t('misiones.j4EnergiaTitulo'),
-        descripcionCorta: t('misiones.j4EnergiaDesc'),
+        get titulo(): string {
+          return t('misiones.j4EnergiaTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j4EnergiaDesc');
+        },
         tituloClave: 'misiones.j4EnergiaTitulo',
         descripcionClave: 'misiones.j4EnergiaDesc',
         obligatoria: true,
@@ -211,8 +239,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 4,
         tiempoLimite: 35,
         eleccion: 'invernadero',
-        titulo: t('misiones.j4InvernaderoTitulo'),
-        descripcionCorta: t('misiones.j4InvernaderoDesc'),
+        get titulo(): string {
+          return t('misiones.j4InvernaderoTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j4InvernaderoDesc');
+        },
         tituloClave: 'misiones.j4InvernaderoTitulo',
         descripcionClave: 'misiones.j4InvernaderoDesc',
         obligatoria: true,
@@ -225,7 +257,9 @@ export const JORNADAS: readonly DefinicionJornada[] = [
   },
   {
     jornada: 5,
-    titulo: t('misiones.j5Titulo'),
+    get titulo(): string {
+      return t('misiones.j5Titulo');
+    },
     tituloClave: 'misiones.j5Titulo',
     misiones: [
       {
@@ -236,8 +270,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 4,
         tiempoLimite: 35,
         eleccion: 'invernadero',
-        titulo: t('misiones.j5InvernaderoTitulo'),
-        descripcionCorta: t('misiones.j5InvernaderoDesc'),
+        get titulo(): string {
+          return t('misiones.j5InvernaderoTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j5InvernaderoDesc');
+        },
         tituloClave: 'misiones.j5InvernaderoTitulo',
         descripcionClave: 'misiones.j5InvernaderoDesc',
         obligatoria: true,
@@ -250,8 +288,12 @@ export const JORNADAS: readonly DefinicionJornada[] = [
         pasos: 4,
         tiempoLimite: 35,
         eleccion: 'escudo_potencia',
-        titulo: t('misiones.j5EscudosTitulo'),
-        descripcionCorta: t('misiones.j5EscudosDesc'),
+        get titulo(): string {
+          return t('misiones.j5EscudosTitulo');
+        },
+        get descripcionCorta(): string {
+          return t('misiones.j5EscudosDesc');
+        },
         tituloClave: 'misiones.j5EscudosTitulo',
         descripcionClave: 'misiones.j5EscudosDesc',
         obligatoria: true,
@@ -282,8 +324,12 @@ export function crearMisionFugaUrgente(
     eleccion: null,
     sinEleccion: true,
     urgente: { ventana },
-    titulo: t('misiones.j2FugaTitulo'),
-    descripcionCorta: t('misiones.j2FugaDesc'),
+    get titulo(): string {
+      return t('misiones.j2FugaTitulo');
+    },
+    get descripcionCorta(): string {
+      return t('misiones.j2FugaDesc');
+    },
     tituloClave: 'misiones.j2FugaTitulo',
     descripcionClave: 'misiones.j2FugaDesc',
     obligatoria: false,
@@ -300,8 +346,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'envio_energia',
       recursoPrincipal: 'aire',
       colorAcento: COLORES.aire,
-      titulo: t('eleccionEnergia.mandarAireTitulo'),
-      descripcion: t('eleccionEnergia.mandarAireDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.mandarAireTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.mandarAireDesc');
+      },
       tituloClave: 'eleccionEnergia.mandarAireTitulo',
       descripcionClave: 'eleccionEnergia.mandarAireDesc',
       efectos: ELECCIONES.envio_energia.mandarAire,
@@ -311,8 +361,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'envio_energia',
       recursoPrincipal: 'escudo',
       colorAcento: COLORES.escudo,
-      titulo: t('eleccionEnergia.mandarEscudoTitulo'),
-      descripcion: t('eleccionEnergia.mandarEscudoDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.mandarEscudoTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.mandarEscudoDesc');
+      },
       tituloClave: 'eleccionEnergia.mandarEscudoTitulo',
       descripcionClave: 'eleccionEnergia.mandarEscudoDesc',
       efectos: ELECCIONES.envio_energia.mandarEscudo,
@@ -324,8 +378,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'invernadero',
       recursoPrincipal: 'aire',
       colorAcento: COLORES.aire,
-      titulo: t('eleccionEnergia.plenaLuzTitulo'),
-      descripcion: t('eleccionEnergia.plenaLuzDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.plenaLuzTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.plenaLuzDesc');
+      },
       tituloClave: 'eleccionEnergia.plenaLuzTitulo',
       descripcionClave: 'eleccionEnergia.plenaLuzDesc',
       efectos: ELECCIONES.invernadero.plenaLuz,
@@ -335,8 +393,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'invernadero',
       recursoPrincipal: 'aire',
       colorAcento: COLORES.ok,
-      titulo: t('eleccionEnergia.ahorroTitulo'),
-      descripcion: t('eleccionEnergia.ahorroDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.ahorroTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.ahorroDesc');
+      },
       tituloClave: 'eleccionEnergia.ahorroTitulo',
       descripcionClave: 'eleccionEnergia.ahorroDesc',
       efectos: ELECCIONES.invernadero.ahorro,
@@ -348,8 +410,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'escudo_potencia',
       recursoPrincipal: 'escudo',
       colorAcento: COLORES.escudo,
-      titulo: t('eleccionEnergia.potenciaAltaTitulo'),
-      descripcion: t('eleccionEnergia.potenciaAltaDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.potenciaAltaTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.potenciaAltaDesc');
+      },
       tituloClave: 'eleccionEnergia.potenciaAltaTitulo',
       descripcionClave: 'eleccionEnergia.potenciaAltaDesc',
       efectos: ELECCIONES.escudo_potencia.potenciaAlta,
@@ -359,8 +425,12 @@ export const OPCIONES_POR_TIPO_ELECCION: Record<
       tipo: 'escudo_potencia',
       recursoPrincipal: 'escudo',
       colorAcento: COLORES.ok,
-      titulo: t('eleccionEnergia.potenciaBajaTitulo'),
-      descripcion: t('eleccionEnergia.potenciaBajaDesc'),
+      get titulo(): string {
+        return t('eleccionEnergia.potenciaBajaTitulo');
+      },
+      get descripcion(): string {
+        return t('eleccionEnergia.potenciaBajaDesc');
+      },
       tituloClave: 'eleccionEnergia.potenciaBajaTitulo',
       descripcionClave: 'eleccionEnergia.potenciaBajaDesc',
       efectos: ELECCIONES.escudo_potencia.potenciaBaja,
@@ -373,8 +443,12 @@ export const OPCIONES_DESTINO_ENERGIA: readonly OpcionDestinoEnergia[] = [
     id: 'invernadero',
     recursoPrincipal: 'aire',
     colorAcento: COLORES.aire,
-    titulo: t('eleccionEnergia.invernaderoTitulo'),
-    descripcion: t('eleccionEnergia.invernaderoDesc'),
+    get titulo(): string {
+      return t('eleccionEnergia.invernaderoTitulo');
+    },
+    get descripcion(): string {
+      return t('eleccionEnergia.invernaderoDesc');
+    },
     tituloClave: 'eleccionEnergia.invernaderoTitulo',
     descripcionClave: 'eleccionEnergia.invernaderoDesc',
     efectos: EFECTOS_ELECCION_ENERGIA.invernadero,
@@ -383,8 +457,12 @@ export const OPCIONES_DESTINO_ENERGIA: readonly OpcionDestinoEnergia[] = [
     id: 'bateriaCentral',
     recursoPrincipal: 'energia',
     colorAcento: COLORES.energia,
-    titulo: t('eleccionEnergia.bateriaTitulo'),
-    descripcion: t('eleccionEnergia.bateriaDesc'),
+    get titulo(): string {
+      return t('eleccionEnergia.bateriaTitulo');
+    },
+    get descripcion(): string {
+      return t('eleccionEnergia.bateriaDesc');
+    },
     tituloClave: 'eleccionEnergia.bateriaTitulo',
     descripcionClave: 'eleccionEnergia.bateriaDesc',
     efectos: EFECTOS_ELECCION_ENERGIA.bateriaCentral,
@@ -393,8 +471,12 @@ export const OPCIONES_DESTINO_ENERGIA: readonly OpcionDestinoEnergia[] = [
     id: 'escudos',
     recursoPrincipal: 'escudo',
     colorAcento: COLORES.escudo,
-    titulo: t('eleccionEnergia.escudosTitulo'),
-    descripcion: t('eleccionEnergia.escudosDesc'),
+    get titulo(): string {
+      return t('eleccionEnergia.escudosTitulo');
+    },
+    get descripcion(): string {
+      return t('eleccionEnergia.escudosDesc');
+    },
     tituloClave: 'eleccionEnergia.escudosTitulo',
     descripcionClave: 'eleccionEnergia.escudosDesc',
     efectos: EFECTOS_ELECCION_ENERGIA.escudos,

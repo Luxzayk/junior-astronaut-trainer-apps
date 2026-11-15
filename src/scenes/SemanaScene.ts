@@ -85,11 +85,11 @@ export class SemanaScene extends Phaser.Scene {
     };
 
     const cardW = 364;
-    const cardH = 382;
+    const cardH = textoGrande ? 416 : 382;
     const gap = 28;
     const totalW = SEMANAS.length * cardW + (SEMANAS.length - 1) * gap;
     const xInicio = cx - totalW / 2 + cardW / 2;
-    const yCards = 344;
+    const yCards = textoGrande ? 350 : 344;
 
     const itemsFoco: ItemFoco[] = [];
 
@@ -283,7 +283,7 @@ export class SemanaScene extends Phaser.Scene {
     }
 
     const nombre = this.add
-      .text(0, -alto / 2 + 96, semana.nombre[idioma], {
+      .text(0, -alto / 2 + 68, semana.nombre[idioma], {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(23, textoGrande, 26)}px`,
         fontStyle: 'bold',
@@ -291,10 +291,11 @@ export class SemanaScene extends Phaser.Scene {
         align: 'center',
         wordWrap: { width: ancho - 36 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
 
+    const yVentana = nombre.y + nombre.height + 12;
     const ventana = this.add
-      .text(0, -alto / 2 + 160, formatearVentanaSemana(semana, idioma), {
+      .text(0, yVentana, formatearVentanaSemana(semana, idioma), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20)}px`,
         fontStyle: 'bold',
@@ -302,10 +303,11 @@ export class SemanaScene extends Phaser.Scene {
         align: 'center',
         wordWrap: { width: ancho - 36 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
 
+    const yDesc = ventana.y + ventana.height + 12;
     const desc = this.add
-      .text(0, -alto / 2 + 232, semana.descripcion[idioma], {
+      .text(0, yDesc, semana.descripcion[idioma], {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 21)}px`,
         fontStyle: 'normal',
@@ -314,11 +316,11 @@ export class SemanaScene extends Phaser.Scene {
         lineSpacing: 4,
         wordWrap: { width: ancho - 36 },
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0);
 
     const ctaW = ancho - 48;
     const ctaH = 56;
-    const ctaY = alto / 2 - 46;
+    const ctaY = alto / 2 - 44;
     const gCta = this.add.graphics();
     gCta.fillStyle(esActiva ? COLORES.ok : COLORES.aire, 1);
     gCta.fillRoundedRect(

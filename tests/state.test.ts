@@ -4,6 +4,9 @@ import {
   DURACION_JORNADA,
   MULT_DRENAJE_POR_JORNADA,
   RECURSOS_INICIALES,
+  SEGUNDO_EVENTO_CLIMA,
+  SEGUNDO_EVENTO_FUGA,
+  VENTANA_FUGA,
 } from '../src/game/balance';
 import { gameState } from '../src/game/state';
 
@@ -144,5 +147,63 @@ describe('GameStateManager (state.ts)', () => {
     expect(reiniciado.misionesHechas).toEqual([]);
     expect(reiniciado.pausado).toBe(false);
     expect(reiniciado.estado).toBe('jugando');
+  });
+
+  it('avanza el reloj y drena recursos durante un minijuego y difiere eventos popup hasta volver a jugando', () => {
+    // Jornada 3 tiene evento 'clima' en SEGUNDO_EVENTO_CLIMA (90s)
+    gameState.siguienteJornada();
+    gameState.siguienteJornada();
+    const alAbrirEvento = vi.fn();
+    const desuscribir = gameState.on('evento:abrir', alAbrirEvento);
+
+    gameState.iniciarMinijuego('energia', 'j3_energia', 'nodos');
+    expect(gameState.getSnapshot().estado).toBe('minijuego');
+
+    const aireAntes = gameState.getSnapshot().aire;
+    gameState.tick(SEGUNDO_EVENTO_CLIMA + 2);
+
+    const durante = gameState.getSnapshot();
+    expect(durante.segundos).toBe(SEGUNDO_EVENTO_CLIMA + 2);
+    expect(durante.aire).toBeLessThan(aireAntes);
+    expect(durante.estado).toBe('minijuego');
+    expect(alAbrirEvento).not.toHaveBeenCalled();
+
+    // Al salir del minijuego vuelve a 'jugando' y en el siguiente tick dispara el evento diferido
+    gameState.finalizarMinijuego('salida', 'energia', 'j3_energia');
+    expect(gameState.getSnapshot().estado).toBe('jugando');
+
+    gameState.tick(0.5);
+    expect(gameState.getSnapshot().estado).toBe('evento');
+    expect(alAbrirEvento).toHaveBeenCalledTimes(1);
+
+    desuscribir();
+  });
+
+  it('evacua durante un minijuego si el aire llega a 0 y no abre elección fantasma si la fuga expiró dentro del minijuego', () => {
+    // 1. Evacuación durante minijuego
+    gameState.iniciarMinijuego('energia', 'j1_energia', 'nodos');
+    gameState.cambiarRecurso('aire', -99);
+    gameState.tick(10);
+    expect(gameState.getSnapshot().aire).toBe(0);
+    expect(gameState.getSnapshot().estado).toBe('evacuacion');
+
+    // 2. Expiración de fuga urgente durante minijuego sin abrir elección fantasma
+    gameState.reset();
+    gameState.siguienteJornada(); // Jornada 2
+    gameState.tick(SEGUNDO_EVENTO_FUGA);
+    expect(gameState.getSnapshot().misionUrgente?.mision.id).toBe(
+      'j2_fuga_tanque',
+    );
+
+    gameState.iniciarMinijuego('tanque', 'j2_fuga_tanque', 'valvulas');
+    gameState.tick(VENTANA_FUGA + 2); // expira la ventana durante el minijuego
+
+    expect(gameState.getSnapshot().misionUrgente).toBeNull();
+    expect(gameState.getSnapshot().misionesPerdidas).toContain(
+      'j2_fuga_tanque',
+    );
+
+    gameState.finalizarMinijuego('exito', 'tanque', 'j2_fuga_tanque');
+    expect(gameState.getSnapshot().estado).toBe('jugando');
   });
 });

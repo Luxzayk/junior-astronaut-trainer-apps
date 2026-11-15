@@ -4,7 +4,7 @@
 > **Aviso:** Proyecto independiente creado para NASA Space Apps 2026; no está afiliado ni respaldado por la NASA.
 
 ## Herramientas utilizadas / Tools used
-- `[herramientas usadas]` (por ejemplo: asistentes de programación y redacción técnica utilizados por el equipo durante el hackathon).
+- Asistentes de programación y redacción técnica basados en IA utilizados por el equipo durante el hackathon bajo supervisión humana directa.
 
 ## En qué se usó la IA / How AI assisted
 La asistencia de herramientas de IA se utilizó para acelerar tareas de desarrollo y documentación bajo supervisión directa del equipo humano:
