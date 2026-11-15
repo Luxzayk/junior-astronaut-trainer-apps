@@ -1,6 +1,7 @@
 // Generación de texturas procedurales al inicio y detalles de arte de la base lunar
 
 import type Phaser from 'phaser';
+import { MENU } from '../ui/menuLayout';
 import { GAME_HEIGHT, GAME_WIDTH, MAP_OFFSET_Y, TILE } from '../config';
 import { CRATERES_DECORATIVOS, SALAS, type SalaId } from '../game/map';
 import { getAjustes } from '../game/settings';
@@ -396,4 +397,90 @@ export function dibujarDetalleSalaProcedural(
     g.lineBetween(x1 - 19, y0 + 42, x1 - 19, y0 + 52);
     g.lineBetween(x1 - 24, y0 + 47, x1 - 14, y0 + 47);
   }
+}
+
+// Fondo exclusivo del menú: una textura compartida, sin actualización por frame.
+export const TEXTURA_MENU = 'menu_lunar_estatico';
+export interface EstrellaMenu { x: number; y: number; radio: number; brillo: number }
+export function generarEstrellas(semilla: number, cantidad: number): readonly EstrellaMenu[] {
+  let estado = semilla >>> 0;
+  const siguiente = (): number => {
+    estado = (Math.imul(1664525, estado) + 1013904223) >>> 0;
+    return estado / 4294967296;
+  };
+  const a = MENU.arte;
+  return Array.from({ length: Math.max(0, Math.floor(cantidad)) }, (_, i) => ({
+    x: a.bordeEstrella + siguiente() * (MENU.ancho - a.bordeEstrella * 2),
+    y: a.bordeEstrella + siguiente() * (MENU.horizonte - a.bordeEstrella * 2),
+    radio: i % a.cadaEstrellaBrillante === 0 ? a.tamanoMaximoEstrella : 1 + Math.floor(siguiente() * 2),
+    brillo: a.brilloEstrella + siguiente() * a.variacionBrillo,
+  }));
+}
+export function generarTexturaMenu(scene: Phaser.Scene): void {
+  if (scene.textures.exists(TEXTURA_MENU)) return;
+  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+  const a = MENU.arte;
+  for (let i = 0; i < MENU.cieloBandas; i++) {
+    g.fillStyle(COLORES.fondoLienzo);
+    g.fillRect(0, i * a.banda, MENU.ancho, a.banda);
+    g.fillStyle(COLORES.panelHud, i / MENU.cieloBandas);
+    g.fillRect(0, i * a.banda, MENU.ancho, a.banda);
+  }
+  for (const estrella of generarEstrellas(MENU.semilla, MENU.estrellas)) {
+    g.fillStyle(COLORES.textoPrincipal, estrella.brillo);
+    g.fillCircle(estrella.x, estrella.y, estrella.radio);
+    if (estrella.radio === a.tamanoMaximoEstrella) {
+      g.fillStyle(COLORES.aire, a.haloAlpha);
+      g.fillCircle(estrella.x, estrella.y, a.haloRadio);
+    }
+  }
+  g.fillStyle(COLORES.sueloSala);
+  g.fillEllipse(a.superficie.x, a.superficie.y, a.superficie.ancho, a.superficie.alto);
+  g.fillStyle(COLORES.sueloPasillo);
+  g.fillEllipse(a.relieveBase.x, a.relieveBase.y, a.relieveBase.ancho, a.relieveBase.alto);
+  const c = a.crateres;
+  for (let i = 0; i < c.cantidad; i++) {
+    const x = c.x + i * c.pasoX;
+    const y = c.y + (i % c.filas) * c.pasoY;
+    g.fillStyle(COLORES.textoSecundario, c.bordeAlpha);
+    g.fillEllipse(x, y, c.ancho, c.alto);
+    g.fillStyle(COLORES.sombra, c.sombraAlpha);
+    g.fillEllipse(x + c.sombraX, y + c.sombraY, c.sombraW, c.sombraH);
+    g.fillStyle(COLORES.baldosaLinea);
+    g.fillEllipse(x + a.roca.x, y + a.roca.y, a.roca.ancho, a.roca.alto);
+  }
+  const b = MENU.base;
+  const m = a.modulo;
+  const acentos = [COLORES.energia, COLORES.aire, COLORES.escudo, COLORES.tanque, COLORES.lobby, COLORES.refugio];
+  g.lineStyle(m.corredor, COLORES.sueloPasillo);
+  g.lineBetween(b.x + m.extremo1, b.y + m.centroArriba, b.x + m.extremo2, b.y + m.centroAbajo);
+  g.lineBetween(b.x + m.extremo1, b.y + m.centroAbajo, b.x + m.extremo2, b.y + m.centroArriba);
+  acentos.forEach((color, i) => {
+    const x = b.x + (i % 3) * (b.moduloW + b.gapX);
+    const y = b.y + Math.floor(i / 3) * (b.moduloH + b.gapY);
+    g.fillStyle(COLORES.panelHud);
+    g.fillRoundedRect(x, y, b.moduloW, b.moduloH, m.radio);
+    g.lineStyle(MENU.borde, color);
+    g.strokeRoundedRect(x, y, b.moduloW, b.moduloH, m.radio);
+    g.fillStyle(color, m.ventanaAlpha);
+    g.fillRoundedRect(x + m.ventanaX, y + m.ventanaY, m.ventanaW, m.ventanaH, m.ventanaRadio);
+    g.fillStyle(COLORES.energia, m.luzAlpha);
+    for (let j = 0; j < m.luces; j++) g.fillRect(x + m.luzX + j * m.pasoLuz, y + m.luzY, m.luzTamano, m.luzTamano);
+  });
+  const antena = a.antena;
+  g.lineStyle(antena.grosor, COLORES.textoSecundario);
+  g.lineBetween(antena.x, antena.pie, antena.x, antena.y);
+  g.strokeEllipse(antena.platoX, antena.y, antena.ancho, antena.alto);
+  g.lineBetween(antena.platoX, antena.y, antena.extremoX, antena.extremoY);
+  const s = a.solares;
+  for (const x of s.posiciones) {
+    g.fillStyle(COLORES.astronautaVisor);
+    g.fillRect(x, s.y, s.ancho, s.alto);
+    g.lineStyle(MENU.borde / 1.5, COLORES.aire);
+    g.strokeRect(x, s.y, s.ancho, s.alto);
+    for (let i = 1; i < s.lineas; i++) g.lineBetween(x + i * s.paso, s.y, x + i * s.paso, s.y + s.alto);
+    g.lineBetween(x + s.ancho / 2, s.y + s.alto, x + s.ancho / 2, s.pie);
+  }
+  g.generateTexture(TEXTURA_MENU, MENU.ancho, MENU.alto);
+  g.destroy();
 }

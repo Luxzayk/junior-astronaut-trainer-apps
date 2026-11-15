@@ -20,6 +20,7 @@ export interface OpcionesGestorFoco {
   grosorBorde?: number;
   colorBorde?: number;
   mostrarInicial?: boolean;
+  resolverFlecha?: (indice: number, codigo: string) => number;
   habilitado?: () => boolean;
 }
 
@@ -29,6 +30,7 @@ export class GestorFoco {
   private items: readonly ItemFoco[];
   private indice = 0;
   private visible = false;
+  private resolverFlecha?: (indice: number, codigo: string) => number;
   private grosorBorde: number;
   private colorBorde: number;
   private onCancelar?: () => void;
@@ -39,6 +41,7 @@ export class GestorFoco {
   constructor(scene: Phaser.Scene, opciones: OpcionesGestorFoco) {
     this.scene = scene;
     this.items = opciones.items;
+    this.resolverFlecha = opciones.resolverFlecha;
     this.grosorBorde = Math.max(3, opciones.grosorBorde ?? 4);
     this.colorBorde = opciones.colorBorde ?? COLORES.focoBorde;
     this.onCancelar = opciones.onCancelar;
@@ -156,6 +159,12 @@ export class GestorFoco {
         }
         evento.preventDefault();
         this.moverFoco(evento.shiftKey ? -1 : 1);
+        return;
+      }
+
+      if (this.resolverFlecha && ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(evento.code)) {
+        evento.preventDefault();
+        this.sincronizarIndice(this.resolverFlecha(this.indice, evento.code));
         return;
       }
 

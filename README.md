@@ -274,3 +274,17 @@ tests/
   tutorial.test.ts       // 7-step interactive tutorial and pause-rule tests
   valvulas.test.ts       // Valve sequence, gauge, and limit tests
 ```
+
+## Textos EN pendientes de revisión humana
+
+Claves nuevas del menú (ES y EN tienen las mismas claves):
+`menu.idiomaEs`, `menu.idiomaEn`, `menu.costoDecision`, `menu.demoHint`,
+`menu.listoComandante`, `menu.datosReales`, `menu.datosEjemplo`,
+`menu.eventoArchivo`, `menu.eventoEjemplo`, `menu.fuenteArchivo`,
+`menu.etiquetaArchivo`, `menu.etiquetaEjemplo`, `menu.origenDatos`.
+
+Se conservan `days` y `Power` porque son los términos del HUD y del cierre en EN.
+El enlace de procedencia se añade después de Sonido en Tab, conservando primero
+Jugar, Demo, Glosario, Fuentes, Ajustes, Créditos, ES, EN y Sonido.
+El lienzo lógico sigue siendo 1280×720 con Scale FIT; texto grande reorganiza
+los accesos secundarios en dos filas sin reducir el tamaño de letra.

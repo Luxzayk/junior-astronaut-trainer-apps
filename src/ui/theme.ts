@@ -1,6 +1,7 @@
 // Paleta visual, tipografía y métricas de interfaz
 
 export const COLORES_HEX = {
+  focoMenu: '#FFFFFF',
   fondoLienzo: '#0B1020',
   panelHud: '#141B34',
   bordePanel: '#2A3566',
@@ -33,6 +34,7 @@ export const COLORES_HEX = {
 } as const;
 
 export const COLORES = {
+  focoMenu: 0xffffff,
   fondoLienzo: 0x0b1020,
   panelHud: 0x141b34,
   bordePanel: 0x2a3566,
@@ -185,4 +187,3 @@ export const EVENTO_METRICAS = {
   chipAncho: 142,
   chipAlto: 36,
 } as const;
-
