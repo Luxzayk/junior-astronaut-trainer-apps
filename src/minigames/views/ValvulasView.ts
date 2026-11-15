@@ -377,12 +377,20 @@ export class ValvulasView implements MinigameView {
     const primero = this.nodos[0];
     const ultimo = this.nodos[this.nodos.length - 1];
 
-    // Tubería horizontal principal
+    // Tubería horizontal principal con brillo metálico y bridas de acople
     g.lineStyle(18, 0x263156, 1);
     g.lineBetween(primero.baseX - 36, primero.baseY, ultimo.baseX + 36, ultimo.baseY);
+    g.lineStyle(4, COLORES.astronautaReflejo, 0.18);
+    g.lineBetween(primero.baseX - 36, primero.baseY - 4, ultimo.baseX + 36, ultimo.baseY - 4);
     g.lineStyle(4, COLORES.bordePanel, 1);
     g.lineBetween(primero.baseX - 36, primero.baseY - 9, ultimo.baseX + 36, ultimo.baseY - 9);
     g.lineBetween(primero.baseX - 36, primero.baseY + 9, ultimo.baseX + 36, ultimo.baseY + 9);
+
+    for (const nodo of this.nodos) {
+      g.fillStyle(COLORES.bordePanel, 1);
+      g.fillRoundedRect(nodo.baseX - 46, nodo.baseY - 12, 6, 24, 2);
+      g.fillRoundedRect(nodo.baseX + 40, nodo.baseY - 12, 6, 24, 2);
+    }
 
     // Rutas de flujo real 1 -> 2 -> 3... con flechas direccionales claras
     const ordenados = [...this.nodos].sort((a, b) => a.item.id - b.item.id);
@@ -447,6 +455,13 @@ export class ValvulasView implements MinigameView {
 
       g.fillStyle(colorFondo, 1);
       this.rellenarForma(g, nodo.item.forma, 40);
+
+      // Radios y aro sutil de volante de válvula conservando la silueta exterior
+      g.lineStyle(2, COLORES.astronautaReflejo, nodo.item.cerrada ? 0.25 : 0.16);
+      g.lineBetween(-22, 0, 22, 0);
+      g.lineBetween(0, -22, 0, 22);
+      g.strokeCircle(0, 0, 22);
+
       g.lineStyle(esFoco ? 4 : 3, colorBorde, 1);
       this.dibujarForma(g, nodo.item.forma, 40);
 

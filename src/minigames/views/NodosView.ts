@@ -519,12 +519,29 @@ export class NodosView implements MinigameView {
 
       g.lineBetween(cx, cy, tx, ty);
 
+      // Brillo metálico central en el conducto
+      g.lineStyle(
+        Math.max(3, Math.round(grosor * 0.25)),
+        COLORES.astronautaReflejo,
+        celda.energizado ? 0.55 : 0.22,
+      );
+      g.lineBetween(cx, cy, tx, ty);
+      g.lineStyle(grosor, colorCable, 1);
+
+      // Collarín de unión en el puerto de salida
+      g.fillStyle(COLORES.bordePanel, 1);
+      g.fillCircle(tx, ty, grosor * 0.56);
       g.fillStyle(colorCable, 1);
-      g.fillCircle(tx, ty, grosor * 0.45);
+      g.fillCircle(tx, ty, grosor * 0.42);
     }
 
+    // Nodo central con anillo metálico de acople
+    g.fillStyle(COLORES.bordePanel, 1);
+    g.fillCircle(cx, cy, grosor * 0.85);
     g.fillStyle(colorCable, 1);
-    g.fillCircle(cx, cy, grosor * 0.72);
+    g.fillCircle(cx, cy, grosor * 0.7);
+    g.lineStyle(2, COLORES.astronautaReflejo, celda.energizado ? 0.6 : 0.25);
+    g.strokeCircle(cx, cy, grosor * 0.52);
     g.fillStyle(fondoColor, 1);
     g.fillCircle(cx, cy, Math.max(4, mitad * 0.14));
   }

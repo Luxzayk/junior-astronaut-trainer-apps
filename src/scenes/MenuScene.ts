@@ -37,6 +37,7 @@ export function lanzarEscenasJuego(scenePlugin: Phaser.Scenes.ScenePlugin): void
   scenePlugin.launch(SCENE_KEYS.event);
   scenePlugin.launch(SCENE_KEYS.apagon);
   scenePlugin.launch(SCENE_KEYS.overlay);
+  scenePlugin.launch(SCENE_KEYS.informe);
   scenePlugin.launch(SCENE_KEYS.tutorial);
 
   scenePlugin.bringToTop(SCENE_KEYS.hud);
@@ -45,7 +46,27 @@ export function lanzarEscenasJuego(scenePlugin: Phaser.Scenes.ScenePlugin): void
   scenePlugin.bringToTop(SCENE_KEYS.event);
   scenePlugin.bringToTop(SCENE_KEYS.apagon);
   scenePlugin.bringToTop(SCENE_KEYS.overlay);
+  scenePlugin.bringToTop(SCENE_KEYS.informe);
   scenePlugin.bringToTop(SCENE_KEYS.tutorial);
+}
+
+export function detenerEscenasJuego(scenePlugin: Phaser.Scenes.ScenePlugin): void {
+  const claves = [
+    SCENE_KEYS.tutorial,
+    SCENE_KEYS.informe,
+    SCENE_KEYS.overlay,
+    SCENE_KEYS.apagon,
+    SCENE_KEYS.event,
+    SCENE_KEYS.choice,
+    SCENE_KEYS.minigame,
+    SCENE_KEYS.hud,
+    SCENE_KEYS.base,
+  ];
+  for (const clave of claves) {
+    if (scenePlugin.isActive(clave)) {
+      scenePlugin.stop(clave);
+    }
+  }
 }
 
 export class MenuScene extends Phaser.Scene {
@@ -187,19 +208,22 @@ export class MenuScene extends Phaser.Scene {
       activar: iniciarDemo,
     });
 
-    // 3, 4, 5. Glosario, Fuentes, Ajustes (>= 64px)
+    // 3, 4, 5, 6. Glosario, Fuentes, Ajustes, Créditos (>= 62px)
     const ySecundarios = top + 390;
-    const secW = 212;
-    const secH = 64;
-    const secGap = 20;
+    const secW = 158;
+    const secH = 62;
+    const secGap = 16;
     const secBotones: Array<{ etiqueta: string; clave: string }> = [
       { etiqueta: t('menu.glosario'), clave: SCENE_KEYS.glosario },
       { etiqueta: t('menu.fuentes'), clave: SCENE_KEYS.fuentes },
       { etiqueta: t('menu.ajustes'), clave: SCENE_KEYS.ajustes },
+      { etiqueta: t('menu.creditos'), clave: SCENE_KEYS.creditos },
     ];
+    const totalSecW =
+      secBotones.length * secW + (secBotones.length - 1) * secGap;
 
     secBotones.forEach((btn, idx) => {
-      const bx = cx + (idx - 1) * (secW + secGap);
+      const bx = cx - totalSecW / 2 + secW / 2 + idx * (secW + secGap);
       const activar = (): void => abrirSubescena(btn.clave);
       this.crearBotonMenu(
         itemsFoco.length,

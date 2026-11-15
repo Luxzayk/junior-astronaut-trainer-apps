@@ -23,6 +23,14 @@ import {
   dibujarIconoLobby,
 } from '../ui/icons';
 import {
+  crearWidgetMascota,
+  estadoMascota,
+} from '../art/mascota';
+import {
+  crearSecuenciaCierre,
+  type ControlSecuenciaCierre,
+} from '../fx/cierres';
+import {
   COLORES,
   COLORES_HEX,
   escalarTamanoTexto,
@@ -31,6 +39,7 @@ import {
   OVERLAY_METRICAS,
   TAMANOS_TEXTO,
 } from '../ui/theme';
+import { debeMostrarInformeFinal } from './InformeScene';
 
 export class OverlayScene extends Phaser.Scene {
   private raiz: Phaser.GameObjects.Container | null = null;
@@ -38,6 +47,8 @@ export class OverlayScene extends Phaser.Scene {
   private contenido: Phaser.GameObjects.Container | null = null;
   private gestorFoco: GestorFoco | null = null;
   private modalGlosario: ControlModalGlosario | null = null;
+  private secuenciaCierre: ControlSecuenciaCierre | null = null;
+  private cierreMostradoParaClave = '';
   private desuscripciones: Array<() => void> = [];
 
   constructor() {
@@ -105,7 +116,8 @@ export class OverlayScene extends Phaser.Scene {
     return (
       this.scene.isActive(SCENE_KEYS.ajustes) ||
       this.scene.isActive(SCENE_KEYS.glosario) ||
-      this.scene.isActive(SCENE_KEYS.fuentes)
+      this.scene.isActive(SCENE_KEYS.fuentes) ||
+      this.scene.isActive(SCENE_KEYS.creditos)
     );
   }
 
@@ -176,8 +188,12 @@ export class OverlayScene extends Phaser.Scene {
       snap.estado === 'minijuego' ||
       snap.estado === 'eleccion' ||
       snap.estado === 'evento' ||
-      snap.estado === 'apagon'
+      snap.estado === 'apagon' ||
+      debeMostrarInformeFinal(snap)
     ) {
+      this.secuenciaCierre?.destroy();
+      this.secuenciaCierre = null;
+      this.cierreMostradoParaClave = '';
       this.modalGlosario?.cerrar();
       this.raiz.setVisible(false);
       this.contenido.removeAll(true);
@@ -185,18 +201,76 @@ export class OverlayScene extends Phaser.Scene {
       return;
     }
 
-    this.raiz.setVisible(true);
-    this.contenido.removeAll(true);
-
     if (snap.estado === 'pausa') {
+      this.secuenciaCierre?.destroy();
+      this.secuenciaCierre = null;
+      this.raiz.setVisible(true);
+      this.contenido.removeAll(true);
       this.dibujarPanel(
         OVERLAY_METRICAS.panelAncho,
-        420,
+        448,
         COLORES.bordePanel,
       );
       this.construirVistaPausa();
       return;
     }
+
+    // Secuencia animada (~4s, saltable) antes de mostrar tarjeta de cierre o evacuación
+    const claveCierre = `${snap.modo}:${snap.estado}:${snap.jornada}`;
+    const puedeAnimar =
+      (snap.estado === 'finJornada' || snap.estado === 'evacuacion') &&
+      !tutorialManager.estaPausandoReloj() &&
+      this.cierreMostradoParaClave !== claveCierre;
+
+    if (puedeAnimar) {
+      this.cierreMostradoParaClave = claveCierre;
+      this.raiz.setVisible(false);
+      this.contenido.removeAll(true);
+      this.gestorFoco?.actualizarItems([]);
+      this.secuenciaCierre?.destroy();
+
+      const tipoAnim =
+        snap.estado === 'evacuacion'
+          ? 'evacuacion'
+          : snap.ultimoCierre?.tipo === 'completa'
+            ? 'completa'
+            : 'incompleta';
+
+      this.secuenciaCierre = crearSecuenciaCierre(this, {
+        tipo: tipoAnim,
+        jornada: snap.jornada,
+        moduloDanado: snap.moduloDanado,
+        alTerminar: () => {
+          this.secuenciaCierre = null;
+          this.mostrarTarjetaCierre(gameState.getSnapshot());
+        },
+      });
+      return;
+    }
+
+    if (this.secuenciaCierre) {
+      return;
+    }
+
+    this.mostrarTarjetaCierre(snap);
+  }
+
+  private mostrarTarjetaCierre(snap: Readonly<GameState>): void {
+    if (!this.raiz || !this.contenido) {
+      return;
+    }
+    if (
+      snap.estado !== 'finJornada' &&
+      snap.estado !== 'evacuacion'
+    ) {
+      return;
+    }
+    if (debeMostrarInformeFinal(snap)) {
+      return;
+    }
+
+    this.raiz.setVisible(true);
+    this.contenido.removeAll(true);
 
     if (snap.modo === 'demo') {
       this.dibujarPanel(
@@ -225,7 +299,7 @@ export class OverlayScene extends Phaser.Scene {
         OVERLAY_METRICAS.panelAlto,
         COLORES.peligro,
       );
-      this.construirVistaEvacuacion();
+      this.construirVistaEvacuacion(snap);
     }
   }
 
@@ -235,12 +309,12 @@ export class OverlayScene extends Phaser.Scene {
     }
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
-    const panelAlto = 420;
+    const panelAlto = 448;
     const top = cy - panelAlto / 2;
     const textoGrande = getAjustes().textoGrande;
 
     const titulo = this.add
-      .text(cx, top + 52, t('overlays.pausaTitulo'), {
+      .text(cx, top + 48, t('overlays.pausaTitulo'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.titulo, textoGrande, 38)}px`,
         fontStyle: 'bold',
@@ -254,12 +328,14 @@ export class OverlayScene extends Phaser.Scene {
     const abrirGlosario = (): void =>
       this.abrirSubescenaPausa(SCENE_KEYS.glosario);
     const abrirFuentes = (): void => this.abrirSubescenaPausa(SCENE_KEYS.fuentes);
+    const abrirCreditos = (): void =>
+      this.abrirSubescenaPausa(SCENE_KEYS.creditos);
 
     const btnContinuar = this.crearBoton(
       0,
       cx,
-      top + 128,
-      340,
+      top + 118,
+      360,
       62,
       t('overlays.continuar'),
       COLORES.aire,
@@ -270,8 +346,8 @@ export class OverlayScene extends Phaser.Scene {
     const btnReiniciar = this.crearBoton(
       1,
       cx,
-      top + 206,
-      340,
+      top + 194,
+      360,
       58,
       t('overlays.reiniciarJornada'),
       COLORES.botonFondo,
@@ -279,28 +355,30 @@ export class OverlayScene extends Phaser.Scene {
       reiniciar,
     );
 
-    const subW = 178;
-    const subH = 58;
-    const subGap = 16;
-    const subY = top + 296;
+    const subW = 248;
+    const subH = 56;
+    const subGapX = 18;
+    const subRow1Y = top + 286;
+    const subRow2Y = top + 358;
     const subBotones: Array<{ etiqueta: string; accion: () => void }> = [
       { etiqueta: t('overlays.abrirAjustes'), accion: abrirAjustes },
       { etiqueta: t('overlays.abrirGlosario'), accion: abrirGlosario },
       { etiqueta: t('overlays.abrirFuentes'), accion: abrirFuentes },
+      { etiqueta: t('overlays.abrirCreditos'), accion: abrirCreditos },
     ];
 
     const itemsFoco: ItemFoco[] = [
       {
         x: cx,
-        y: top + 128,
-        ancho: 340,
+        y: top + 118,
+        ancho: 360,
         alto: 62,
         activar: continuar,
       },
       {
         x: cx,
-        y: top + 206,
-        ancho: 340,
+        y: top + 194,
+        ancho: 360,
         alto: 58,
         activar: reiniciar,
       },
@@ -309,11 +387,14 @@ export class OverlayScene extends Phaser.Scene {
     this.contenido.add([titulo, btnContinuar, btnReiniciar]);
 
     subBotones.forEach((btn, idx) => {
-      const bx = cx + (idx - 1) * (subW + subGap);
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const bx = cx + (col === 0 ? -1 : 1) * (subW / 2 + subGapX / 2);
+      const by = row === 0 ? subRow1Y : subRow2Y;
       const nodo = this.crearBoton(
         itemsFoco.length,
         bx,
-        subY,
+        by,
         subW,
         subH,
         btn.etiqueta,
@@ -324,7 +405,7 @@ export class OverlayScene extends Phaser.Scene {
       this.contenido?.add(nodo);
       itemsFoco.push({
         x: bx,
-        y: subY,
+        y: by,
         ancho: subW,
         alto: subH,
         activar: btn.accion,
@@ -418,7 +499,19 @@ export class OverlayScene extends Phaser.Scene {
       repetirDemo,
     );
 
+    const luniDemo = crearWidgetMascota(this, {
+      x: cx - 296,
+      y: top + 56,
+      escala: 0.78,
+      estadoInicial:
+        snap.estado === 'evacuacion'
+          ? 'asustada'
+          : estadoMascota(snap.aire, snap.escudo),
+      mostrarFrase: false,
+    });
+
     this.contenido.add([
+      luniDemo.container,
       titulo,
       subtitulo,
       textoMisiones,
@@ -555,7 +648,19 @@ export class OverlayScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const luniCierre = crearWidgetMascota(this, {
+      x: cx - 304,
+      y: top + 58,
+      escala: 0.78,
+      estadoInicial:
+        tipo === 'completa'
+          ? 'contenta'
+          : estadoMascota(restante.aire, restante.escudo),
+      mostrarFrase: false,
+    });
+
     this.contenido.add([
+      luniCierre.container,
       titulo,
       textoMisiones,
       textoGasto,
@@ -710,13 +815,21 @@ export class OverlayScene extends Phaser.Scene {
     return contenedor;
   }
 
-  private construirVistaEvacuacion(): void {
+  private construirVistaEvacuacion(snap: Readonly<GameState>): void {
     if (!this.contenido) {
       return;
     }
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
     const textoGrande = getAjustes().textoGrande;
+
+    const luniEvac = crearWidgetMascota(this, {
+      x: cx - 252,
+      y: cy - 92,
+      escala: 0.82,
+      estadoInicial: estadoMascota(snap.aire, snap.escudo),
+      mostrarFrase: false,
+    });
 
     const titulo = this.add
       .text(cx, cy - 92, t('overlays.evacuacionTitulo'), {
@@ -725,7 +838,7 @@ export class OverlayScene extends Phaser.Scene {
         fontStyle: 'bold',
         color: COLORES_HEX.textoPrincipal,
         align: 'center',
-        wordWrap: { width: OVERLAY_METRICAS.panelAncho - 64 },
+        wordWrap: { width: OVERLAY_METRICAS.panelAncho - 160 },
       })
       .setOrigin(0.5);
 
@@ -753,7 +866,7 @@ export class OverlayScene extends Phaser.Scene {
       reintentar,
     );
 
-    this.contenido.add([titulo, motivo, btnReintentar]);
+    this.contenido.add([luniEvac.container, titulo, motivo, btnReintentar]);
     this.gestorFoco?.actualizarItems([
       {
         x: cx,
@@ -895,6 +1008,8 @@ export class OverlayScene extends Phaser.Scene {
   }
 
   private limpiar(): void {
+    this.secuenciaCierre?.destroy();
+    this.secuenciaCierre = null;
     this.modalGlosario?.destroy();
     this.modalGlosario = null;
     this.gestorFoco?.destroy();

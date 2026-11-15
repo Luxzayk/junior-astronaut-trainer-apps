@@ -6,7 +6,10 @@ import {
   localEventosProvider,
   obtenerEtiquetaSelloEvento,
 } from '../data/eventosLoader';
-import { FUENTES_DATOS, obtenerReglaNivelOrientativa } from '../data/fuentes';
+import {
+  obtenerFuentesActivas,
+  obtenerReglaNivelOrientativa,
+} from '../data/fuentes';
 import { formatearVentanaSemana, SEMANAS } from '../game/semanas';
 import { getAjustes } from '../game/settings';
 import { t } from '../i18n';
@@ -107,8 +110,8 @@ export class FuentesScene extends Phaser.Scene {
     let yCursor = 8;
     const cardW = viewW - 36;
 
-    // 1. Fuentes registradas (DONKI con etiqueta "De archivo", Balance, Tecnología)
-    for (const fuente of FUENTES_DATOS) {
+    // 1. Fuentes registradas (DONKI con etiqueta "De archivo", OSDR opcional si verificado, Balance, Tecnología)
+    for (const fuente of obtenerFuentesActivas()) {
       const etiquetaTipo =
         fuente.tipo === 'archivo'
           ? t('fuentes.etiquetaArchivo')

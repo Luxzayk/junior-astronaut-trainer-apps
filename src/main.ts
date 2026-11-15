@@ -12,10 +12,12 @@ import { ApagonScene } from './scenes/ApagonScene';
 import { BaseScene } from './scenes/BaseScene';
 import { BootScene } from './scenes/BootScene';
 import { ChoiceScene } from './scenes/ChoiceScene';
+import { CreditosScene } from './scenes/CreditosScene';
 import { EventScene } from './scenes/EventScene';
 import { FuentesScene } from './scenes/FuentesScene';
 import { GlosarioScene } from './scenes/GlosarioScene';
 import { HUDScene } from './scenes/HUDScene';
+import { InformeScene } from './scenes/InformeScene';
 import { MenuScene } from './scenes/MenuScene';
 import { MinigameScene } from './scenes/MinigameScene';
 import { OverlayScene } from './scenes/OverlayScene';
@@ -63,6 +65,7 @@ async function iniciarJuego(): Promise<void> {
       FuentesScene,
       GlosarioScene,
       AjustesScene,
+      CreditosScene,
       BaseScene,
       HUDScene,
       MinigameScene,
@@ -70,6 +73,7 @@ async function iniciarJuego(): Promise<void> {
       EventScene,
       ApagonScene,
       OverlayScene,
+      InformeScene,
       TutorialScene,
     ],
   };

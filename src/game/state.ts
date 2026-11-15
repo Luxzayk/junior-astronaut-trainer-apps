@@ -23,6 +23,11 @@ import {
 } from './balance';
 import { obtenerMultiplicadorJornada } from './clock';
 import {
+  crearEntradaBitacora,
+  clonarBitacora,
+  type EntradaBitacora,
+} from './bitacora';
+import {
   evaluarCierreJornada,
   obtenerMultiplicadorModuloDanado,
   type GastoRecursos,
@@ -78,6 +83,11 @@ export interface MisionUrgenteActiva {
   tiempoRestante: number;
 }
 
+export interface ResumenJornadaEstado {
+  jornada: number;
+  completa: boolean;
+}
+
 export interface GameState {
   modo: ModoJuego;
   semanaId: IdSemana;
@@ -101,6 +111,8 @@ export interface GameState {
   eventoClimaDisparado: boolean;
   eventoDisparadoEnJornada: boolean;
   eventoActivo: string | null;
+  bitacora: EntradaBitacora[];
+  resultadosJornadas: ResumenJornadaEstado[];
 }
 
 export interface EventoRecursoCambio {
@@ -219,6 +231,8 @@ interface SnapshotInicioJornada {
   aguaBaja: boolean;
   aguaBajaPendiente: boolean;
   eventoClimaDisparado: boolean;
+  bitacora: EntradaBitacora[];
+  resultadosJornadas: ResumenJornadaEstado[];
 }
 
 function limitarRecurso(valor: number): number {
@@ -304,6 +318,8 @@ export class GameStateManager {
         eventoClimaDisparado: false,
         eventoDisparadoEnJornada: false,
         eventoActivo: null,
+        bitacora: [],
+        resultadosJornadas: [],
       };
     }
 
@@ -330,6 +346,8 @@ export class GameStateManager {
       eventoClimaDisparado: false,
       eventoDisparadoEnJornada: false,
       eventoActivo: null,
+      bitacora: [],
+      resultadosJornadas: [],
     };
   }
 
@@ -346,6 +364,8 @@ export class GameStateManager {
       aguaBaja: this.state.aguaBaja,
       aguaBajaPendiente: this.state.aguaBajaPendiente,
       eventoClimaDisparado: this.state.eventoClimaDisparado,
+      bitacora: clonarBitacora(this.state.bitacora),
+      resultadosJornadas: this.state.resultadosJornadas.map((r) => ({ ...r })),
     };
   }
 
@@ -372,6 +392,8 @@ export class GameStateManager {
             recursosFinales: { ...this.state.ultimoCierre.recursosFinales },
           }
         : null,
+      bitacora: clonarBitacora(this.state.bitacora),
+      resultadosJornadas: this.state.resultadosJornadas.map((r) => ({ ...r })),
     };
   }
 
@@ -464,6 +486,10 @@ export class GameStateManager {
     this.state.eventoActivo = null;
     this.state.gastoJornada = crearGastoVacio();
     this.state.ultimoCierre = null;
+    this.state.bitacora = clonarBitacora(this.inicioJornada.bitacora);
+    this.state.resultadosJornadas = this.inicioJornada.resultadosJornadas.map(
+      (r) => ({ ...r }),
+    );
     this.state.pausado = false;
     this.state.estado = 'jugando';
 
@@ -525,6 +551,13 @@ export class GameStateManager {
     this.state.misionUrgente = null;
     this.state.eventoActivo = null;
     this.state.ultimoCierre = resultado;
+    const otrosResultados = this.state.resultadosJornadas.filter(
+      (r) => r.jornada !== this.state.jornada,
+    );
+    this.state.resultadosJornadas = [
+      ...otrosResultados,
+      { jornada: this.state.jornada, completa: resultado.tipo === 'completa' },
+    ].sort((a, b) => a.jornada - b.jornada);
     this.state.estado = 'finJornada';
 
     this.emitirCambiosRecursos(anteriores);
@@ -615,6 +648,11 @@ export class GameStateManager {
           ];
         }
         this.state.aguaBajaPendiente = true;
+        this.registrarEnBitacora({
+          tipo: 'fuga',
+          id: 'fuga_perdida',
+          nota: 'aguaBaja',
+        });
         this.emit('fuga:fin', { reparada: false });
         this.emit('estado:cambio', { estado: this.state.estado });
       }
@@ -675,6 +713,10 @@ export class GameStateManager {
         tiempoRestante: eventoDef.ventana,
       };
       this.state.eventoActivo = 'fuga';
+      this.registrarEnBitacora({
+        tipo: 'fuga',
+        id: 'fuga_inicio',
+      });
       this.emit('fuga:inicio', {});
       this.emit('estado:cambio', { estado: this.state.estado });
       return;
@@ -765,6 +807,10 @@ export class GameStateManager {
     ) {
       this.state.misionUrgente = null;
       this.state.eventoActivo = null;
+      this.registrarEnBitacora({
+        tipo: 'fuga',
+        id: 'fuga_reparada',
+      });
       this.emit('fuga:fin', { reparada: true });
     }
 
@@ -801,10 +847,33 @@ export class GameStateManager {
       this.state.misionUrgente = null;
       this.state.eventoActivo = null;
       this.state.aguaBajaPendiente = true;
+      this.registrarEnBitacora({
+        tipo: 'fuga',
+        id: 'fuga_perdida',
+        nota: 'aguaBaja',
+      });
       this.emit('fuga:fin', { reparada: false });
     }
 
     this.emit('estado:cambio', { estado: this.state.estado });
+  }
+
+  private registrarEnBitacora(params: {
+    tipo: EntradaBitacora['tipo'];
+    id: string;
+    deltas?: Partial<EntradaBitacora['deltas']>;
+    nota?: string;
+  }): void {
+    this.state.bitacora = [
+      ...this.state.bitacora,
+      crearEntradaBitacora({
+        jornada: this.state.jornada,
+        tipo: params.tipo,
+        id: params.id,
+        deltas: params.deltas,
+        nota: params.nota,
+      }),
+    ];
   }
 
   public iniciarMinijuego(
@@ -817,6 +886,12 @@ export class GameStateManager {
       return;
     }
     const costo = obtenerCostoIntento(minigameId);
+    this.registrarEnBitacora({
+      tipo: 'intento',
+      id: minigameId,
+      deltas: costo,
+      nota: misionId ?? estacionId,
+    });
     this.aplicarDeltasRecursos(costo);
 
     this.state.estado = 'minijuego';
@@ -925,6 +1000,12 @@ export class GameStateManager {
       return;
     }
     const opcion = obtenerOpcionEleccionPorId(tipoEleccion, opcionId);
+    this.registrarEnBitacora({
+      tipo: 'eleccion',
+      id: opcionId,
+      deltas: opcion?.efectos,
+      nota: tipoEleccion,
+    });
     if (opcion) {
       this.aplicarDeltasRecursos(opcion.efectos);
     }
@@ -948,6 +1029,12 @@ export class GameStateManager {
       return;
     }
     const opcion = obtenerOpcionEnergiaPorId(opcionId);
+    this.registrarEnBitacora({
+      tipo: 'eleccion',
+      id: opcionId,
+      deltas: opcion?.efectos,
+      nota: 'envio_energia',
+    });
     if (opcion) {
       this.aplicarDeltasRecursos(opcion.efectos);
     }
@@ -975,6 +1062,12 @@ export class GameStateManager {
       return;
     }
     const efectos = obtenerEfectosOpcionEventoClima(opcionId, tipoOpciones);
+    this.registrarEnBitacora({
+      tipo: 'evento',
+      id: opcionId,
+      deltas: efectos,
+      nota: tipoOpciones,
+    });
     this.aplicarDeltasRecursos(efectos);
 
     if (opcionId === 'refugiarte') {
@@ -1011,6 +1104,11 @@ export class GameStateManager {
       return;
     }
     const efectos = obtenerEfectosApagon(opcionId);
+    this.registrarEnBitacora({
+      tipo: 'apagon',
+      id: opcionId,
+      deltas: efectos,
+    });
     this.aplicarDeltasRecursos(efectos);
 
     let resumen = '';

@@ -36,6 +36,10 @@ import {
   dibujarIconoRecurso,
 } from '../ui/icons';
 import {
+  crearWidgetMascota,
+  estadoMascota,
+} from '../art/mascota';
+import {
   COLORES,
   COLORES_HEX,
   escalarTamanoTexto,
@@ -46,7 +50,7 @@ import {
   TAMANOS_TEXTO,
 } from '../ui/theme';
 
-const PANEL_EVENTO_ALTO = 568;
+const PANEL_EVENTO_ALTO = 620;
 
 export class EventScene extends Phaser.Scene {
   private raiz: Phaser.GameObjects.Container | null = null;
@@ -243,6 +247,22 @@ export class EventScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const snap = gameState.getSnapshot();
+    const estadoLuniBase = estadoMascota(snap.aire, snap.escudo);
+    const estadoLuniEvento =
+      estadoLuniBase === 'asustada' ? 'asustada' : 'preocupada';
+
+    const luniEvento = crearWidgetMascota(this, {
+      x: cx - 196,
+      y: top + 258,
+      escala: 0.78,
+      estadoInicial: estadoLuniEvento,
+      mostrarFrase: true,
+      anchoFrase: 356,
+      alineacionFrase: 'derecha',
+      contexto: 'evento',
+    });
+
     this.contenido.add([
       iconoAlerta,
       titulo,
@@ -251,6 +271,7 @@ export class EventScene extends Phaser.Scene {
       fuente,
       gSello,
       txtSello,
+      luniEvento.container,
     ]);
 
     const opciones = obtenerOpcionesEventoClima(tipoOpciones);
@@ -259,7 +280,7 @@ export class EventScene extends Phaser.Scene {
     const sep = EVENTO_METRICAS.tarjetaSeparacion;
     const totalW = opciones.length * tAncho + (opciones.length - 1) * sep;
     const xInicio = cx - totalW / 2 + tAncho / 2;
-    const yTarjetas = top + 348;
+    const yTarjetas = top + 402;
 
     const itemsFoco: ItemFoco[] = [];
     opciones.forEach((opcion, idx) => {
@@ -284,7 +305,7 @@ export class EventScene extends Phaser.Scene {
     const chipW = 316;
     const chipH = 56;
     const chipGap = 24;
-    const chipY = top + 512;
+    const chipY = top + 566;
 
     idsGlosario.forEach((idTermino, idx) => {
       const chipX = cx + (idx === 0 ? -1 : 1) * (chipW / 2 + chipGap / 2);

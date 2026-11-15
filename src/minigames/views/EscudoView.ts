@@ -405,6 +405,20 @@ export class EscudoView implements MinigameView {
 
       g.fillStyle(estaAlineado ? 0x17332b : COLORES.botonFondo, 1);
       g.fillRoundedRect(-tam / 2, -tam / 2, tam, tam, ESPACIADO.radioBoton);
+
+      // Rejilla de celdas solares y marco metálico interior
+      const m = tam / 2 - 8;
+      g.lineStyle(1, COLORES.aire, estaAlineado ? 0.24 : 0.14);
+      g.lineBetween(-m, -14, m, -14);
+      g.lineBetween(-m, 14, m, 14);
+      g.lineBetween(-16, -m, -16, m);
+      g.lineBetween(16, -m, 16, m);
+      g.fillStyle(COLORES.textoSecundario, 0.45);
+      g.fillCircle(-m, -m, 2);
+      g.fillCircle(m, -m, 2);
+      g.fillCircle(-m, m, 2);
+      g.fillCircle(m, m, 2);
+
       g.lineStyle(
         esFoco ? 4 : 2.5,
         estaAlineado ? COLORES.ok : esFoco ? COLORES.aire : COLORES.bordePanel,

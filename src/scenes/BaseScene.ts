@@ -22,7 +22,15 @@ import {
   VELOCIDAD_JUGADOR,
 } from '../game/balance';
 import {
-  CRATERES_DECORATIVOS,
+  dibujarDetallesBaseExterior,
+  dibujarDetalleSalaProcedural,
+  TEXTURA_ASTRONAUTA,
+  TEXTURA_ESTRELLAS,
+  TEXTURA_SUELO_LUNAR,
+  TEXTURAS_ASTRONAUTA_CAMINATA,
+} from '../art/texturas';
+import { ControladorEfectosBase, evaluarEfectosActivos } from '../fx/efectos';
+import {
   ESTACIONES,
   isWalkable,
   obtenerNombreEstacion,
@@ -69,7 +77,6 @@ import {
   MISION_PANEL_METRICAS,
   TAMANOS_TEXTO,
 } from '../ui/theme';
-import { TEXTURA_ASTRONAUTA } from './BootScene';
 
 interface EstacionVisual {
   definicion: DefinicionEstacion;
@@ -125,6 +132,11 @@ export class BaseScene extends Phaser.Scene {
     texto: Phaser.GameObjects.Text;
   }> = [];
 
+  private fondoEstrellas: Phaser.GameObjects.Image | null = null;
+  private efectosBase: ControladorEfectosBase | null = null;
+  private distanciaCaminataFrame = 0;
+  private frameAstronautaIdx = 0;
+
   private desuscripciones: Array<() => void> = [];
 
   constructor() {
@@ -140,6 +152,8 @@ export class BaseScene extends Phaser.Scene {
     this.indiceRuta = 0;
     this.modoDebug = isDebugEnabled();
     this.debugVelocidadIdx = 0;
+    this.distanciaCaminataFrame = 0;
+    this.frameAstronautaIdx = 0;
 
     this.dibujarMapa();
     registrarObjetivoUI('mapa', {
@@ -156,6 +170,7 @@ export class BaseScene extends Phaser.Scene {
     this.crearBannerFuga();
     this.crearFlechaTanque();
     this.crearAvisoEstacion();
+    this.efectosBase = new ControladorEfectosBase(this, 45);
     this.configurarEntrada();
     this.configurarDebug();
     this.suscribirEstado();
@@ -164,6 +179,7 @@ export class BaseScene extends Phaser.Scene {
     );
     this.actualizarPanelMisiones();
     this.actualizarIndicadoresMisionEstaciones();
+    this.actualizarEfectosBase();
 
     this.events.once('shutdown', this.limpiar, this);
   }
@@ -182,8 +198,10 @@ export class BaseScene extends Phaser.Scene {
       this.actualizarEstacionCercana();
     } else {
       this.establecerBotonUsarVisible(false);
+      this.reiniciarFrameQuieto();
     }
 
+    this.efectosBase?.update(dtSeg);
     this.actualizarUIFugaUrgente();
 
     if (this.modoDebug) {
@@ -192,20 +210,27 @@ export class BaseScene extends Phaser.Scene {
   }
 
   private dibujarMapa(): void {
-    const g = this.add.graphics();
+    const mapCentroX = GAME_WIDTH / 2;
+    const mapCentroY = MAP_OFFSET_Y + (GAME_HEIGHT - MAP_OFFSET_Y) / 2;
 
-    g.fillStyle(COLORES.fondoLienzo, 1);
-    g.fillRect(0, MAP_OFFSET_Y, GAME_WIDTH, GAME_HEIGHT - MAP_OFFSET_Y);
+    const fondoBase = this.add.graphics();
+    fondoBase.fillStyle(COLORES.fondoLienzo, 1);
+    fondoBase.fillRect(0, MAP_OFFSET_Y, GAME_WIDTH, GAME_HEIGHT - MAP_OFFSET_Y);
 
-    for (const crater of CRATERES_DECORATIVOS) {
-      const tile = pxATile(crater.x, crater.y);
-      if (!isWalkable(tile.col, tile.fila)) {
-        g.fillStyle(COLORES.craterOscuro, 0.9);
-        g.fillCircle(crater.x, crater.y, crater.radio);
-        g.lineStyle(2, COLORES.craterBorde, 0.65);
-        g.strokeCircle(crater.x, crater.y, crater.radio);
-      }
+    if (this.textures.exists(TEXTURA_ESTRELLAS)) {
+      this.fondoEstrellas = this.add.image(
+        mapCentroX,
+        mapCentroY,
+        TEXTURA_ESTRELLAS,
+      );
     }
+
+    if (this.textures.exists(TEXTURA_SUELO_LUNAR)) {
+      this.add.image(mapCentroX, mapCentroY, TEXTURA_SUELO_LUNAR);
+    }
+
+    const g = this.add.graphics();
+    dibujarDetallesBaseExterior(g);
 
     for (let fila = 0; fila < MAP_ROWS; fila++) {
       for (let col = 0; col < MAP_COLS; col++) {
@@ -249,6 +274,8 @@ export class BaseScene extends Phaser.Scene {
           }
         }
       }
+
+      dibujarDetalleSalaProcedural(g, sala.id);
 
       const centroSalaX =
         ((sala.colInicio + sala.colFin + 1) / 2) * TILE +
@@ -1173,11 +1200,24 @@ export class BaseScene extends Phaser.Scene {
 
   private suscribirEstado(): void {
     this.desuscripciones.push(
+      gameState.on('recurso:cambio', () => {
+        this.actualizarEfectosBase();
+      }),
+    );
+
+    this.desuscripciones.push(
+      gameState.on('evento:abrir', () => {
+        this.actualizarEfectosBase();
+      }),
+    );
+
+    this.desuscripciones.push(
       gameState.on('jornada:nueva', () => {
         this.reiniciarPosicionJugador();
         this.actualizarPanelMisiones();
         this.actualizarIndicadoresMisionEstaciones();
         this.actualizarOverlayDebugMisiones();
+        this.actualizarEfectosBase();
       }),
     );
 
@@ -1216,6 +1256,7 @@ export class BaseScene extends Phaser.Scene {
         this.actualizarPanelMisiones();
         this.actualizarIndicadoresMisionEstaciones();
         this.actualizarOverlayDebugMisiones();
+        this.actualizarEfectosBase();
       }),
     );
 
@@ -1239,7 +1280,10 @@ export class BaseScene extends Phaser.Scene {
           escalarTamanoTexto(TAMANOS_TEXTO.subtitulo, textoGrande, 23),
         );
         this.actualizarPanelMisiones();
+        this.actualizarEfectosBase();
         if (ajustes.movimientoReducido) {
+          this.reiniciarFrameQuieto();
+          this.actualizarParallaxEstrellas(GAME_WIDTH / 2, GAME_HEIGHT / 2, true);
           for (const est of this.estacionesVisuales) {
             this.detenerPulsoEstacion(est);
           }
@@ -1248,6 +1292,24 @@ export class BaseScene extends Phaser.Scene {
         }
       }),
     );
+  }
+
+  private actualizarEfectosBase(): void {
+    if (!this.efectosBase) {
+      return;
+    }
+    const snap = gameState.getSnapshot();
+    const enEventoClima =
+      snap.eventoClimaDisparado ||
+      snap.estado === 'evento' ||
+      snap.eventoActivo === 'FULGURACION' ||
+      snap.eventoActivo === 'TORMENTA_GRANDE';
+    const estado = evaluarEfectosActivos(
+      { aire: snap.aire, energia: snap.energia, escudo: snap.escudo },
+      enEventoClima,
+      getAjustes().movimientoReducido,
+    );
+    this.efectosBase.aplicarEstado(estado);
   }
 
   private reiniciarPosicionJugador(): void {
@@ -1263,6 +1325,12 @@ export class BaseScene extends Phaser.Scene {
       this.jugador.setPosition(inicio.x, inicio.y);
       this.jugador.setFlipX(false);
       this.sombraJugador.setPosition(inicio.x, inicio.y + 18);
+      this.reiniciarFrameQuieto();
+      this.actualizarParallaxEstrellas(
+        inicio.x,
+        inicio.y,
+        getAjustes().movimientoReducido,
+      );
     }
     this.actualizarEstacionCercana();
   }
@@ -1341,7 +1409,10 @@ export class BaseScene extends Phaser.Scene {
 
     if (this.rutaActual.length > 0 && this.indiceRuta < this.rutaActual.length) {
       this.avanzarPorRuta(dtSeg);
+      return;
     }
+
+    this.reiniciarFrameQuieto();
   }
 
   private avanzarPorRuta(dtSeg: number): void {
@@ -1401,9 +1472,54 @@ export class BaseScene extends Phaser.Scene {
     this.sombraJugador.setPosition(pos.x, pos.y + 18);
 
     const distMovida = Math.hypot(pos.x - prevX, pos.y - prevY);
+    const reducido = getAjustes().movimientoReducido;
     if (distMovida > 0) {
       tutorialManager.registrarMovimiento(distMovida);
+      if (reducido) {
+        this.reiniciarFrameQuieto();
+      } else {
+        this.distanciaCaminataFrame += distMovida;
+        if (this.distanciaCaminataFrame >= 20) {
+          this.distanciaCaminataFrame = 0;
+          this.frameAstronautaIdx =
+            (this.frameAstronautaIdx + 1) % TEXTURAS_ASTRONAUTA_CAMINATA.length;
+          const tex = TEXTURAS_ASTRONAUTA_CAMINATA[this.frameAstronautaIdx];
+          if (this.textures.exists(tex)) {
+            this.jugador.setTexture(tex);
+          }
+        }
+      }
+      this.actualizarParallaxEstrellas(pos.x, pos.y, reducido);
+    } else {
+      this.reiniciarFrameQuieto();
     }
+  }
+
+  private reiniciarFrameQuieto(): void {
+    if (this.frameAstronautaIdx !== 0) {
+      this.frameAstronautaIdx = 0;
+      this.distanciaCaminataFrame = 0;
+      this.jugador?.setTexture(TEXTURA_ASTRONAUTA);
+    }
+  }
+
+  private actualizarParallaxEstrellas(
+    jugadorX: number,
+    jugadorY: number,
+    reducido: boolean,
+  ): void {
+    if (!this.fondoEstrellas) {
+      return;
+    }
+    const baseCx = GAME_WIDTH / 2;
+    const baseCy = MAP_OFFSET_Y + (GAME_HEIGHT - MAP_OFFSET_Y) / 2;
+    if (reducido) {
+      this.fondoEstrellas.setPosition(baseCx, baseCy);
+      return;
+    }
+    const offX = Math.max(-18, Math.min(18, (baseCx - jugadorX) * 0.025));
+    const offY = Math.max(-18, Math.min(18, (baseCy - jugadorY) * 0.025));
+    this.fondoEstrellas.setPosition(baseCx + offX, baseCy + offY);
   }
 
   private actualizarEstacionCercana(): void {
@@ -1560,6 +1676,10 @@ export class BaseScene extends Phaser.Scene {
     for (const est of this.estacionesVisuales) {
       this.detenerPulsoEstacion(est);
     }
+
+    this.efectosBase?.destroy();
+    this.efectosBase = null;
+    this.fondoEstrellas = null;
 
     if (this.timerAviso) {
       this.timerAviso.remove(false);

@@ -24,6 +24,8 @@ export const SCENE_KEYS = {
   apagon: 'ApagonScene',
   overlay: 'OverlayScene',
   tutorial: 'TutorialScene',
+  creditos: 'CreditosScene',
+  informe: 'InformeScene',
 } as const;
 
 export const DEBUG_QUERY_PARAM = 'debug';

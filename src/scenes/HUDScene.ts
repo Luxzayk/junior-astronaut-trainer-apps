@@ -1,8 +1,19 @@
 // HUD superior (altura 80 px): 3 barras con iconos, reloj en arco, indicador Agua baja y botón de pausa
 
 import Phaser from 'phaser';
+import {
+  crearWidgetMascota,
+  estadoMascota,
+  type WidgetMascota,
+} from '../art/mascota';
 import { GAME_WIDTH, HUD_H, SCENE_KEYS } from '../config';
-import { MAX_JORNADAS, UMBRAL_BAJO, UMBRAL_CRITICO } from '../game/balance';
+import { ControladorEfectosHUD, evaluarEfectosActivos } from '../fx/efectos';
+import {
+  MAX_JORNADAS,
+  PERIODO_PULSO_LENTO_MS,
+  UMBRAL_BAJO,
+  UMBRAL_CRITICO,
+} from '../game/balance';
 import {
   calcularFraccionRestante,
   formatearTiempoMMSS,
@@ -54,6 +65,8 @@ export class HUDScene extends Phaser.Scene {
   private fondoBotonPausa: Phaser.GameObjects.Graphics | null = null;
   private indicadorAguaBaja: Phaser.GameObjects.Container | null = null;
   private textoAguaBaja: Phaser.GameObjects.Text | null = null;
+  private widgetLuni: WidgetMascota | null = null;
+  private efectosHud: ControladorEfectosHUD | null = null;
   private ultimoTextoTiempo = '';
   private ultimaFraccionReloj = -1;
   private desuscripciones: Array<() => void> = [];
@@ -71,7 +84,9 @@ export class HUDScene extends Phaser.Scene {
     this.crearBarras();
     this.crearReloj();
     this.crearIndicadorAguaBaja();
+    this.crearMascotaHud();
     this.crearBotonPausa();
+    this.efectosHud = new ControladorEfectosHUD(this);
     this.configurarAtajosPausa();
     this.suscribirEventos();
 
@@ -82,6 +97,7 @@ export class HUDScene extends Phaser.Scene {
     this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
     this.actualizarIndicadorAguaBaja(snap.aguaBaja);
     this.actualizarReloj(snap.segundos);
+    this.actualizarEstadoVisualHud();
 
     registrarObjetivoUI('barras', {
       x: HUD_METRICAS.barraXIcono,
@@ -286,6 +302,39 @@ export class HUDScene extends Phaser.Scene {
     this.indicadorAguaBaja.setVisible(false);
   }
 
+  private crearMascotaHud(): void {
+    this.widgetLuni = crearWidgetMascota(this, {
+      x: 958,
+      y: HUD_H / 2 + 2,
+      escala: 0.72,
+      estadoInicial: 'contenta',
+      mostrarFrase: true,
+      anchoFrase: 202,
+      alineacionFrase: 'derecha',
+      contexto: 'hud',
+    });
+  }
+
+  private actualizarEstadoVisualHud(): void {
+    const snap = gameState.getSnapshot();
+    const mood = estadoMascota(snap.aire, snap.escudo);
+    this.widgetLuni?.setEstado(mood);
+
+    if (this.efectosHud) {
+      const enEventoClima =
+        snap.eventoClimaDisparado ||
+        snap.estado === 'evento' ||
+        snap.eventoActivo === 'FULGURACION' ||
+        snap.eventoActivo === 'TORMENTA_GRANDE';
+      const estadoFx = evaluarEfectosActivos(
+        { aire: snap.aire, energia: snap.energia, escudo: snap.escudo },
+        enEventoClima,
+        getAjustes().movimientoReducido,
+      );
+      this.efectosHud.aplicarEstado(estadoFx);
+    }
+  }
+
   private crearBotonPausa(): void {
     const tam = HUD_METRICAS.botonPausaTamano;
     const cx = GAME_WIDTH - HUD_METRICAS.botonPausaMargenDer - tam / 2;
@@ -383,6 +432,13 @@ export class HUDScene extends Phaser.Scene {
     this.desuscripciones.push(
       gameState.on('recurso:cambio', (ev) => {
         this.actualizarBarra(ev.recurso, ev.valor);
+        this.actualizarEstadoVisualHud();
+      }),
+    );
+
+    this.desuscripciones.push(
+      gameState.on('evento:abrir', () => {
+        this.actualizarEstadoVisualHud();
       }),
     );
 
@@ -397,6 +453,7 @@ export class HUDScene extends Phaser.Scene {
         this.actualizarBarra('energia', snap.energia);
         this.actualizarBarra('escudo', snap.escudo);
         this.actualizarReloj(snap.segundos);
+        this.actualizarEstadoVisualHud();
       }),
     );
 
@@ -405,6 +462,7 @@ export class HUDScene extends Phaser.Scene {
         const snap = gameState.getSnapshot();
         this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
         this.actualizarIndicadorAguaBaja(snap.aguaBaja);
+        this.actualizarEstadoVisualHud();
       }),
     );
 
@@ -423,6 +481,7 @@ export class HUDScene extends Phaser.Scene {
         );
         this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
         this.textoAguaBaja?.setText(`! ${t('hud.aguaBaja')}`);
+        this.actualizarEstadoVisualHud();
         if (this.barras) {
           for (const key of ['aire', 'energia', 'escudo'] as const) {
             const b = this.barras[key];
@@ -537,7 +596,7 @@ export class HUDScene extends Phaser.Scene {
     barra.tweenCritico = this.tweens.add({
       targets: [barra.relleno, barra.textoEstado],
       alpha: { from: 1, to: 0.45 },
-      duration: 900,
+      duration: PERIODO_PULSO_LENTO_MS,
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1,
@@ -615,6 +674,10 @@ export class HUDScene extends Phaser.Scene {
       this.detenerPulsoCritico(this.barras.energia);
       this.detenerPulsoCritico(this.barras.escudo);
     }
+    this.widgetLuni?.destroy();
+    this.widgetLuni = null;
+    this.efectosHud?.destroy();
+    this.efectosHud = null;
     desregistrarObjetivoUI('barras');
     desregistrarObjetivoUI('reloj');
     desregistrarObjetivoUI('pausa');

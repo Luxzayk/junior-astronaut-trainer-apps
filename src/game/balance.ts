@@ -172,3 +172,21 @@ export const SIM_TIEMPO_MISION = 30; // segundos por misión, balance de juego, 
 
 // --- Fase 4 (Bloque 3): Tutorial interactivo ---
 export const DISTANCIA_TUTORIAL = 80; // px caminados para completar el paso 2, balance de juego, no datos de NASA
+
+// --- Fase 5 (Etapa 2): Rangos de desempeño ---
+// balance de juego, no datos de NASA.
+export const RANGOS = {
+  commander: { minCompletas: 5 },
+  specialist: { minCompletas: 4 },
+  cadet: { minCompletas: 2 },
+  trainee: { minCompletas: 0 },
+} as const;
+
+// --- Fase 5 (Bloque 2): Efectos, Cierres y Mascota Luni ---
+// balance de juego, no datos de NASA.
+export const MASCOTA_UMBRAL_CONTENTA = 50; // balance de juego, no datos de NASA
+export const FX_MAX_PARTICULAS = 60; // balance de juego, no datos de NASA
+export const DURACION_ANIMACION_CIERRE_MS = 4000; // balance de juego, no datos de NASA
+export const DURACION_TEMBLOR_MAX_MS = 250; // balance de juego, no datos de NASA
+export const PERIODO_PULSO_LENTO_MS = 1200; // balance de juego, no datos de NASA
+export const PERIODO_PARPADEO_ENERGIA_MS = 1100; // balance de juego, no datos de NASA
