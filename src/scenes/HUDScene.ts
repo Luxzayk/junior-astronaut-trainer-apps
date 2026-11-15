@@ -1,6 +1,10 @@
 // HUD superior (altura 80 px): 3 barras con iconos, reloj en arco, indicador Agua baja y botón de pausa
 
 import Phaser from 'phaser';
+import { avanzarBarra, crearEstadoBarra, calcularPreview, marcadorEvento, type MarcadorEventoFx, RECURSOS_HUD, EVENTO_PREVIEW_COSTO, detectarCambioDiscreto, agruparCambios, type EstadoBarraFx, type ConfigBarraFx } from '../ui/hudFx';
+import type { MapaDeltasRecursos } from '../game/missions';
+import { JORNADAS } from '../game/jornadas';
+import { UI_CONFIG } from '../ui/uiConfig';
 import {
   crearWidgetMascota,
   estadoMascota,
@@ -25,6 +29,7 @@ import { getAjustes, suscribirAjustes, updateAjustes } from '../game/settings';
 import { tutorialManager } from '../game/tutorial';
 import { t } from '../i18n';
 import {
+  dibujarIconoRecurso,
   dibujarIconoAire,
   dibujarIconoEnergia,
   dibujarIconoEscudo,
@@ -46,6 +51,10 @@ import {
 type EstadoBarra = 'normal' | 'bajo' | 'critico';
 
 interface BarraUI {
+  preview: Phaser.GameObjects.Graphics;
+  textoPreview: Phaser.GameObjects.Text;
+  fx: EstadoBarraFx;
+  valorReal: number;
   recurso: RecursoNombre;
   colorBase: number;
   xTrack: number;
@@ -60,8 +69,20 @@ interface BarraUI {
   ultimoValor: number;
 }
 
+interface FlotanteHud {
+  texto: Phaser.GameObjects.Text; icono: Phaser.GameObjects.Graphics;
+  recurso: RecursoNombre; delta: number; inicioMs: number; edadMs: number; activo: boolean;
+}
 export class HUDScene extends Phaser.Scene {
+  private flotantes: FlotanteHud[] = [];
+  private tiempoFxMs = 0;
+  private animacionesPausadas = false;
+  private configBarra: ConfigBarraFx = { ...UI_CONFIG, movimientoReducido: getAjustes().movimientoReducido };
   private barras: Record<RecursoNombre, BarraUI> | null = null;
+  private marcaEvento: MarcadorEventoFx | null = null;
+  private graficoMarca: Phaser.GameObjects.Graphics | null = null;
+  private textoMarca: Phaser.GameObjects.Text | null = null;
+  private eventoMarcadoOcurrido = false;
   private textoJornada: Phaser.GameObjects.Text | null = null;
   private textoReloj: Phaser.GameObjects.Text | null = null;
   private arcoReloj: Phaser.GameObjects.Graphics | null = null;
@@ -84,12 +105,14 @@ export class HUDScene extends Phaser.Scene {
 
   public create(): void {
     this.desuscripciones = [];
+    this.configBarra.movimientoReducido = getAjustes().movimientoReducido;
     this.ultimoTextoTiempo = '';
     this.ultimaFraccionReloj = -1;
     this.sonidoHover = false;
 
     this.dibujarFondoHud();
     this.crearBarras();
+    this.crearPoolFlotantes();
     this.crearReloj();
     this.crearIndicadorAguaBaja();
     this.crearMascotaHud();
@@ -104,6 +127,7 @@ export class HUDScene extends Phaser.Scene {
     this.actualizarBarra('energia', snap.energia);
     this.actualizarBarra('escudo', snap.escudo);
     this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
+    this.configurarMarcaEvento();
     this.actualizarIndicadorAguaBaja(snap.aguaBaja);
     this.actualizarReloj(snap.segundos);
     this.actualizarEstadoVisualHud();
@@ -133,9 +157,21 @@ export class HUDScene extends Phaser.Scene {
     this.events.once('shutdown', this.limpiar, this);
   }
 
-  public override update(): void {
+  public override update(_time: number, delta: number): void {
     const snap = gameState.getSnapshot();
     this.actualizarReloj(snap.segundos);
+    if (snap.pausado || snap.estado === 'pausa' || tutorialManager.estaPausandoReloj()) {
+      if (!this.animacionesPausadas) { this.tweens.pauseAll(); this.animacionesPausadas = true; }
+      return;
+    }
+    if (this.animacionesPausadas) { this.tweens.resumeAll(); this.animacionesPausadas = false; }
+    this.tiempoFxMs += delta;
+    this.avanzarFlotantes(delta);
+    if (this.barras) for (const recurso of RECURSOS_HUD) {
+      const barra = this.barras[recurso];
+      barra.fx = avanzarBarra(barra.fx, barra.valorReal, delta, this.configBarra);
+      this.dibujarBarraFx(barra);
+    }
   }
 
   private dibujarFondoHud(): void {
@@ -232,6 +268,10 @@ export class HUDScene extends Phaser.Scene {
         .setOrigin(0, 0.5);
 
       mapaBarras[def.recurso] = {
+        preview: this.add.graphics().setDepth(8),
+        textoPreview: this.add.text(0, yCentro, '', { fontFamily: FUENTE_FAMILIA, fontSize: escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande), fontStyle: 'bold', backgroundColor: COLORES_HEX.panelHud }).setOrigin(0, 0.5).setDepth(9),
+        fx: crearEstadoBarra(gameState.getSnapshot()[def.recurso]),
+        valorReal: gameState.getSnapshot()[def.recurso],
         recurso: def.recurso,
         colorBase: def.color,
         xTrack: HUD_METRICAS.barraXTrack,
@@ -272,6 +312,10 @@ export class HUDScene extends Phaser.Scene {
     );
 
     this.arcoReloj = this.add.graphics();
+    this.graficoMarca = this.add.graphics();
+    this.textoMarca = this.add.text(UI_CONFIG.marcadorX + UI_CONFIG.marcadorEtiquetaOffset, UI_CONFIG.marcadorY, '', {
+      fontFamily: FUENTE_FAMILIA, fontSize: escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande), color: COLORES_HEX.textoPrincipal,
+    }).setOrigin(0, 0.5);
 
     this.textoReloj = this.add
       .text(cx, HUD_METRICAS.relojCentroY, '', {
@@ -552,8 +596,12 @@ export class HUDScene extends Phaser.Scene {
   }
 
   private suscribirEventos(): void {
+    const recibirPreview = (deltas: MapaDeltasRecursos | null): void => this.dibujarPreview(deltas);
+    this.game.events.on(EVENTO_PREVIEW_COSTO, recibirPreview);
+    this.desuscripciones.push(() => this.game.events.off(EVENTO_PREVIEW_COSTO, recibirPreview));
     this.desuscripciones.push(
       gameState.on('recurso:cambio', (ev) => {
+        if (detectarCambioDiscreto(ev.valor - ev.anterior)) this.mostrarFlotante(ev.recurso, ev.valor - ev.anterior);
         this.actualizarBarra(ev.recurso, ev.valor);
         this.actualizarEstadoVisualHud();
       }),
@@ -567,10 +615,14 @@ export class HUDScene extends Phaser.Scene {
 
     this.desuscripciones.push(
       gameState.on('jornada:nueva', (ev) => {
+        this.dibujarPreview(null);
+        for (const f of this.flotantes) { f.activo = false; f.texto.setVisible(false); f.icono.setVisible(false); }
+        if (this.barras) for (const recurso of RECURSOS_HUD) this.barras[recurso].fx = crearEstadoBarra(this.barras[recurso].valorReal);
         const snap = gameState.getSnapshot();
         this.ultimaFraccionReloj = -1;
         this.ultimoTextoTiempo = '';
         this.actualizarEtiquetaJornada(ev.jornada, snap.modo);
+            this.configurarMarcaEvento();
         this.actualizarIndicadorAguaBaja(snap.aguaBaja);
         this.actualizarBarra('aire', snap.aire);
         this.actualizarBarra('energia', snap.energia);
@@ -582,8 +634,10 @@ export class HUDScene extends Phaser.Scene {
 
     this.desuscripciones.push(
       gameState.on('estado:cambio', () => {
+        this.dibujarPreview(null);
         const snap = gameState.getSnapshot();
         this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
+        this.configurarMarcaEvento();
         this.actualizarIndicadorAguaBaja(snap.aguaBaja);
         this.actualizarEstadoVisualHud();
       }),
@@ -593,6 +647,7 @@ export class HUDScene extends Phaser.Scene {
       suscribirAjustes((ajustes) => {
         const snap = gameState.getSnapshot();
         const textoGrande = ajustes.textoGrande;
+        this.configBarra.movimientoReducido = ajustes.movimientoReducido;
         this.textoJornada?.setFontSize(
           escalarTamanoTexto(TAMANOS_TEXTO.reloj, textoGrande, 21),
         );
@@ -603,12 +658,15 @@ export class HUDScene extends Phaser.Scene {
           escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 20),
         );
         this.actualizarEtiquetaJornada(snap.jornada, snap.modo);
+        this.configurarMarcaEvento();
         this.textoAguaBaja?.setText(`! ${t('hud.aguaBaja')}`);
         this.actualizarBotonSonidoVisual();
         this.actualizarEstadoVisualHud();
         if (this.barras) {
-          for (const key of ['aire', 'energia', 'escudo'] as const) {
+          for (const key of RECURSOS_HUD) {
             const b = this.barras[key];
+            b.fx = avanzarBarra(b.fx, b.valorReal, 0, this.configBarra);
+            this.dibujarBarraFx(b);
             b.textoPorcentaje.setFontSize(
               escalarTamanoTexto(TAMANOS_TEXTO.barra, textoGrande, 22),
             );
@@ -636,6 +694,8 @@ export class HUDScene extends Phaser.Scene {
       return;
     }
     const barra = this.barras[recurso];
+    barra.valorReal = valor;
+    barra.fx = avanzarBarra(barra.fx, valor, 0, this.configBarra);
     const valorRedondeado = Math.round(valor);
 
     let nuevoEstado: EstadoBarra = 'normal';
@@ -655,29 +715,7 @@ export class HUDScene extends Phaser.Scene {
       );
     }
 
-    let colorRelleno = barra.colorBase;
-    if (nuevoEstado === 'critico') {
-      colorRelleno = COLORES.peligro;
-    } else if (nuevoEstado === 'bajo') {
-      colorRelleno = COLORES.aviso;
-    }
-
-    const anchoRelleno = Math.max(
-      0,
-      Math.min(HUD_METRICAS.barraAncho, (valor / 100) * HUD_METRICAS.barraAncho),
-    );
-
-    barra.relleno.clear();
-    if (anchoRelleno > 0) {
-      barra.relleno.fillStyle(colorRelleno, 1);
-      barra.relleno.fillRoundedRect(
-        barra.xTrack,
-        barra.yTrack,
-        Math.max(ESPACIADO.radioBarra, anchoRelleno),
-        HUD_METRICAS.barraAlto,
-        ESPACIADO.radioBarra,
-      );
-    }
+    this.dibujarBarraFx(barra);
 
     if (nuevoEstado !== barra.estadoActual) {
       barra.estadoActual = nuevoEstado;
@@ -713,6 +751,91 @@ export class HUDScene extends Phaser.Scene {
     }
   }
 
+  private dibujarPreview(deltas: MapaDeltasRecursos | null): void {
+    if (!this.barras) return;
+    for (const recurso of RECURSOS_HUD) {
+      const b = this.barras[recurso];
+      b.preview.clear(); b.textoPreview.setText('');
+      const delta = deltas?.[recurso] ?? 0;
+      if (delta === 0) continue;
+      const p = calcularPreview(b.valorReal, delta);
+      const escala = HUD_METRICAS.barraAncho / 100;
+      const x = b.xTrack + Math.min(p.desde, p.hasta) * escala;
+      const fin = b.xTrack + Math.max(p.desde, p.hasta) * escala;
+      const positivo = p.tipo === 'subida';
+      b.preview.fillStyle(positivo ? COLORES.ok : COLORES.peligro, UI_CONFIG.alphaPreview);
+      b.preview.fillRect(x, b.yTrack, fin - x, HUD_METRICAS.barraAlto);
+      if (!positivo) {
+        b.preview.lineStyle(UI_CONFIG.grosorRayado, COLORES.textoPrincipal);
+        for (let rx = x; rx < fin; rx += UI_CONFIG.pasoRayado) b.preview.lineBetween(rx, b.yTrack + HUD_METRICAS.barraAlto, Math.min(fin, rx + UI_CONFIG.pasoRayado), b.yTrack);
+      }
+      b.textoPreview.setX(Math.max(b.xTrack, Math.min(x, b.xTrack + HUD_METRICAS.barraAncho - UI_CONFIG.previewTextoAncho)));
+      b.textoPreview.setFontSize(escalarTamanoTexto(TAMANOS_TEXTO.minimo, getAjustes().textoGrande));
+      b.textoPreview.setColor(positivo ? COLORES_HEX.ok : COLORES_HEX.peligro);
+      b.textoPreview.setText(t(positivo ? 'hud.deltaPositivo' : 'hud.deltaNegativo', { valor: Math.abs(delta) }));
+    }
+  }
+  private crearPoolFlotantes(): void {
+    this.tiempoFxMs = 0;
+    this.flotantes = [];
+    for (let i = 0; i < UI_CONFIG.maxFlotantes; i++) {
+      const texto = this.add.text(0, 0, '', { fontFamily: FUENTE_FAMILIA, fontSize: escalarTamanoTexto(UI_CONFIG.flotanteTexto, getAjustes().textoGrande), fontStyle: 'bold', backgroundColor: COLORES_HEX.panelHud }).setOrigin(0, 0.5).setVisible(false).setDepth(10);
+      const icono = this.add.graphics().setVisible(false).setDepth(10);
+      this.flotantes.push({ texto, icono, recurso: 'aire', delta: 0, inicioMs: 0, edadMs: 0, activo: false });
+    }
+  }
+
+  private mostrarFlotante(recurso: RecursoNombre, delta: number): void {
+    const previo = this.flotantes.find(f => f.activo && f.recurso === recurso);
+    const agrupable = previo && this.tiempoFxMs - previo.inicioMs <= UI_CONFIG.ventanaAgrupacionMs;
+    const f = previo ?? this.flotantes.find(f => !f.activo);
+    if (!f || !this.barras) return;
+    if (agrupable) {
+      f.delta = agruparCambios([{ recurso, delta: f.delta, instanteMs: f.inicioMs }, { recurso, delta, instanteMs: this.tiempoFxMs }], UI_CONFIG.ventanaAgrupacionMs)[0].delta;
+    } else { f.delta = delta; f.inicioMs = this.tiempoFxMs; }
+    f.recurso = recurso; f.edadMs = 0; f.activo = true;
+    const indice = recurso === 'aire' ? 0 : recurso === 'energia' ? 1 : 2;
+    const x = UI_CONFIG.flotanteX + indice * UI_CONFIG.flotanteSeparacionX;
+    f.texto.setPosition(x + UI_CONFIG.flotanteIconoOffset, this.barras[recurso].yCentro + (this.configBarra.movimientoReducido ? 0 : UI_CONFIG.desplazamientoFlotante));
+    f.texto.setFontSize(escalarTamanoTexto(UI_CONFIG.flotanteTexto, getAjustes().textoGrande));
+    f.texto.setText(t(f.delta >= 0 ? 'hud.deltaPositivo' : 'hud.deltaNegativo', { valor: Math.abs(Math.round(f.delta * 10) / 10) }));
+    f.texto.setColor(f.delta >= 0 ? COLORES_HEX.ok : COLORES_HEX.peligro).setAlpha(1).setVisible(true);
+    f.icono.clear();
+    dibujarIconoRecurso(f.icono, recurso, 0, 0, UI_CONFIG.flotanteIcono, this.barras[recurso].colorBase);
+    f.icono.setPosition(x, f.texto.y).setAlpha(1).setVisible(true);
+  }
+
+  private avanzarFlotantes(delta: number): void {
+    for (const f of this.flotantes) {
+      if (!f.activo || !this.barras) continue;
+      f.edadMs += delta;
+      const reducido = this.configBarra.movimientoReducido;
+      const duracion = reducido ? UI_CONFIG.marcadorReducidoMs : UI_CONFIG.flotanteMs;
+      if (f.edadMs >= duracion) { f.activo = false; f.texto.setVisible(false); f.icono.setVisible(false); continue; }
+      const fraccion = f.edadMs / duracion;
+      const y = this.barras[f.recurso].yCentro + (reducido ? 0 : UI_CONFIG.desplazamientoFlotante * (1 - fraccion));
+      f.texto.setY(y).setAlpha(reducido ? 1 : 1 - fraccion);
+      f.icono.setY(y).setAlpha(reducido ? 1 : 1 - fraccion);
+    }
+  }
+  private dibujarBarraFx(barra: BarraUI): void {
+    const g = barra.relleno;
+    const escala = HUD_METRICAS.barraAncho / 100;
+    g.clear();
+    if (!this.configBarra.movimientoReducido && barra.fx.estela > barra.fx.mostrado) {
+      g.fillStyle(barra.colorBase, UI_CONFIG.alphaEstela);
+      g.fillRect(barra.xTrack, barra.yTrack, barra.fx.estela * escala, HUD_METRICAS.barraAlto);
+    }
+    const color = barra.valorReal < UMBRAL_CRITICO ? COLORES.peligro : barra.valorReal < UMBRAL_BAJO ? COLORES.aviso : barra.colorBase;
+    g.fillStyle(color);
+    g.fillRect(barra.xTrack, barra.yTrack, barra.fx.mostrado * escala, HUD_METRICAS.barraAlto);
+    if (this.configBarra.movimientoReducido && barra.fx.marcadorMs > 0) {
+      const inicio = barra.xTrack + barra.fx.perdidaHasta * escala;
+      const fin = barra.xTrack + barra.fx.perdidaDesde * escala;
+      g.lineStyle(UI_CONFIG.grosorRayado, COLORES.textoPrincipal);
+      for (let x = inicio; x < fin; x += UI_CONFIG.pasoRayado) g.lineBetween(x, barra.yTrack + HUD_METRICAS.barraAlto, Math.min(fin, x + UI_CONFIG.pasoRayado), barra.yTrack);
+    }
+  }
   private iniciarPulsoCritico(barra: BarraUI): void {
     if (barra.tweenCritico || getAjustes().movimientoReducido) {
       return;
@@ -748,8 +871,43 @@ export class HUDScene extends Phaser.Scene {
     this.indicadorAguaBaja?.setVisible(activa);
   }
 
+  private configurarMarcaEvento(): void {
+    const snap = gameState.getSnapshot();
+    this.marcaEvento = marcadorEvento(JORNADAS[snap.jornada - 1], snap.modo, gameState.obtenerDuracionJornadaActual());
+    this.eventoMarcadoOcurrido = this.marcaEvento !== null && snap.segundos >= this.marcaEvento.fraccion * gameState.obtenerDuracionJornadaActual();
+    this.textoMarca?.setText(this.marcaEvento ? t('hud.eventoMarca') : '').setFontSize(escalarTamanoTexto(TAMANOS_TEXTO.minimo, getAjustes().textoGrande));
+    this.dibujarMarcaEvento();
+  }
+
+  private dibujarMarcaEvento(): void {
+    const g = this.graficoMarca;
+    if (!g) return;
+    g.clear();
+    if (!this.marcaEvento) return;
+    const marca = this.marcaEvento;
+    // El arco representa tiempo restante, por eso se invierte la fracción transcurrida.
+    const angulo = -Math.PI / 2 + Math.PI * 2 * (1 - marca.fraccion);
+    const x = GAME_WIDTH / 2 + Math.cos(angulo) * HUD_METRICAS.relojRadio;
+    const y = HUD_METRICAS.relojCentroY + Math.sin(angulo) * HUD_METRICAS.relojRadio;
+    g.lineStyle(UI_CONFIG.grosorRayado, COLORES.textoPrincipal);
+    g.lineBetween(x, y, x + Math.cos(angulo) * UI_CONFIG.marcadorLinea, y + Math.sin(angulo) * UI_CONFIG.marcadorLinea);
+    if (marca.tipo === 'fuga') dibujarIconoTanque(g, UI_CONFIG.marcadorX, UI_CONFIG.marcadorY, UI_CONFIG.marcadorIcono, COLORES.textoPrincipal);
+    else dibujarIconoEnergia(g, UI_CONFIG.marcadorX, UI_CONFIG.marcadorY, UI_CONFIG.marcadorIcono, COLORES.textoPrincipal);
+    if (marca.tipo === 'apagon') g.lineBetween(UI_CONFIG.marcadorX - UI_CONFIG.marcadorTick, UI_CONFIG.marcadorY + UI_CONFIG.marcadorTick, UI_CONFIG.marcadorX + UI_CONFIG.marcadorTick, UI_CONFIG.marcadorY - UI_CONFIG.marcadorTick);
+    if (this.eventoMarcadoOcurrido) {
+      const r = UI_CONFIG.marcadorTick;
+      g.lineBetween(x - r, y, x, y + r);
+      g.lineBetween(x, y + r, x + r, y - r);
+    }
+    const alpha = this.eventoMarcadoOcurrido ? UI_CONFIG.marcadorAtenuado : 1;
+    g.setAlpha(alpha); this.textoMarca?.setAlpha(alpha);
+  }
   private actualizarReloj(segundosTranscurridos: number): void {
     const duracion = gameState.obtenerDuracionJornadaActual();
+    if (this.marcaEvento && !this.eventoMarcadoOcurrido && segundosTranscurridos >= this.marcaEvento.fraccion * duracion) {
+      this.eventoMarcadoOcurrido = true;
+      this.dibujarMarcaEvento();
+    }
     const restantes = obtenerTiempoRestante(segundosTranscurridos, duracion);
     const texto = formatearTiempoMMSS(restantes);
     if (texto !== this.ultimoTextoTiempo) {
@@ -793,6 +951,7 @@ export class HUDScene extends Phaser.Scene {
       desuscribir();
     }
     this.desuscripciones = [];
+    this.configBarra.movimientoReducido = getAjustes().movimientoReducido;
     if (this.barras) {
       this.detenerPulsoCritico(this.barras.aire);
       this.detenerPulsoCritico(this.barras.energia);

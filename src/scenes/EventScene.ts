@@ -1,7 +1,9 @@
 // Escena overlay del evento de clima espacial en Jornada 3 y Jornada 5
 
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
+import { EVENTO_PREVIEW_COSTO } from '../ui/hudFx';
+import type { MapaDeltasRecursos } from '../game/missions';
+import { GAME_HEIGHT, GAME_WIDTH, HUD_H, SCENE_KEYS } from '../config';
 import {
   localEventosProvider,
   obtenerEtiquetaSelloEvento,
@@ -53,6 +55,7 @@ import {
 const PANEL_EVENTO_ALTO = 620;
 
 export class EventScene extends Phaser.Scene {
+  private efectosPreview: readonly MapaDeltasRecursos[] = [];
   private raiz: Phaser.GameObjects.Container | null = null;
   private contenido: Phaser.GameObjects.Container | null = null;
   private gestorFoco: GestorFoco | null = null;
@@ -68,16 +71,16 @@ export class EventScene extends Phaser.Scene {
     this.desuscripciones = [];
 
     const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const cy = (GAME_HEIGHT + HUD_H) / 2;
     const ancho = EVENTO_METRICAS.panelAncho;
     const alto = PANEL_EVENTO_ALTO;
 
     const fondoAtenuado = this.add
       .rectangle(
         cx,
-        cy,
+        (GAME_HEIGHT + HUD_H) / 2,
         GAME_WIDTH,
-        GAME_HEIGHT,
+        GAME_HEIGHT - HUD_H,
         COLORES.fondoLienzo,
         OVERLAY_METRICAS.fondoAlpha,
       )
@@ -115,6 +118,7 @@ export class EventScene extends Phaser.Scene {
 
     this.gestorFoco = crearGestorFoco(this, {
       items: [],
+      alCambiarFoco: indice => this.previewCosto(this.efectosPreview[indice] ?? null),
       padre: this.raiz,
       habilitado: () =>
         Boolean(this.raiz?.visible) && !this.modalGlosario?.estaAbierto(),
@@ -144,6 +148,7 @@ export class EventScene extends Phaser.Scene {
       gameState.on('estado:cambio', (ev) => {
         if (ev.estado !== 'evento') {
           this.modalGlosario?.cerrar();
+          this.previewCosto(null);
           this.raiz?.setVisible(false);
           this.contenido?.removeAll(true);
           this.gestorFoco?.actualizarItems([]);
@@ -162,7 +167,7 @@ export class EventScene extends Phaser.Scene {
     this.contenido.removeAll(true);
 
     const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const cy = (GAME_HEIGHT + HUD_H) / 2;
     const alto = PANEL_EVENTO_ALTO;
     const ancho = EVENTO_METRICAS.panelAncho;
     const top = cy - alto / 2;
@@ -286,6 +291,7 @@ export class EventScene extends Phaser.Scene {
     const xInicio = cx - totalW / 2 + tAncho / 2;
     const yTarjetas = top + 402;
 
+    this.efectosPreview = opciones.map(opcion => opcion.efectos);
     const itemsFoco: ItemFoco[] = [];
     opciones.forEach((opcion, idx) => {
       const tx = xInicio + idx * (tAncho + sep);
@@ -298,6 +304,7 @@ export class EventScene extends Phaser.Scene {
         alto: tAlto,
         radio: ESPACIADO.radioPanel,
         activar: () => {
+          this.previewCosto(null);
           gameState.resolverEventoClima(opcion.id, this.tipoOpcionesActual);
         },
       });
@@ -316,6 +323,7 @@ export class EventScene extends Phaser.Scene {
       const etiqueta = this.etiquetaChipGlosario(idTermino, idioma);
       const indiceFoco = itemsFoco.length;
       const abrirTermino = (): void => {
+        this.previewCosto(null);
         this.modalGlosario?.abrir(idTermino, idioma);
       };
       const chip = this.crearChipGlosario(
@@ -409,6 +417,7 @@ export class EventScene extends Phaser.Scene {
 
     zona.on('pointerover', () => {
       dibujar(true);
+      this.previewCosto(null);
       this.gestorFoco?.sincronizarIndice(indice, false);
     });
     zona.on('pointerout', () => dibujar(false));
@@ -587,14 +596,16 @@ export class EventScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     contenedor.add(zona);
 
-    zona.on('pointerover', () => {
+    zona.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       dibujar(true);
+      if (!pointer.wasTouch) this.previewCosto(opcion.efectos);
       this.gestorFoco?.sincronizarIndice(indice, false);
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(1.02);
       }
     });
     zona.on('pointerout', () => {
+      this.previewCosto(null);
       dibujar(false);
       contenedor.setScale(1);
     });
@@ -602,13 +613,21 @@ export class EventScene extends Phaser.Scene {
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(0.98);
       }
+      this.previewCosto(null);
       gameState.resolverEventoClima(opcion.id, this.tipoOpcionesActual);
     });
 
     return contenedor;
   }
 
+  private previewCosto(deltas: MapaDeltasRecursos | null): void {
+    this.game.events.emit(EVENTO_PREVIEW_COSTO, deltas === null ? null : {
+      aire: deltas.aire ?? 0, energia: deltas.energia ?? 0, escudo: deltas.escudo ?? 0,
+    });
+  }
+
   private limpiar(): void {
+    this.previewCosto(null);
     this.modalGlosario?.destroy();
     this.modalGlosario = null;
     this.gestorFoco?.destroy();

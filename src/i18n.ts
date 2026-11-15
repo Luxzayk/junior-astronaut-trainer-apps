@@ -62,6 +62,9 @@ const textosEs = {
     critico: '¡Crítico!',
   },
   hud: {
+    eventoMarca: 'Evento',
+    deltaPositivo: '+{valor}',
+    deltaNegativo: '−{valor}',
     jornadaDe: 'Jornada {actual} de {total}',
     demoJornadaDe: 'Demo · Jornada {actual} de {total}',
     aguaBaja: 'Agua baja',
@@ -558,6 +561,9 @@ const textosEn: EstructuraTextos<typeof textosEs> = {
     critico: 'Critical!',
   },
   hud: {
+    eventoMarca: 'Event',
+    deltaPositivo: '+{valor}',
+    deltaNegativo: '−{valor}',
     jornadaDe: 'Day {actual} of {total}',
     demoJornadaDe: 'Demo · Day {actual} of {total}',
     aguaBaja: 'Low water',

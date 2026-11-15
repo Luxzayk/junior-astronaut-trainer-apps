@@ -1,7 +1,9 @@
 // Escena overlay del evento Apagón en Jornada 4
 
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
+import { EVENTO_PREVIEW_COSTO } from '../ui/hudFx';
+import type { MapaDeltasRecursos } from '../game/missions';
+import { GAME_HEIGHT, GAME_WIDTH, HUD_H, SCENE_KEYS } from '../config';
 import {
   obtenerOpcionesApagon,
   type OpcionApagon,
@@ -23,6 +25,7 @@ import {
 } from '../ui/theme';
 
 export class ApagonScene extends Phaser.Scene {
+  private efectosPreview: readonly MapaDeltasRecursos[] = [];
   private raiz: Phaser.GameObjects.Container | null = null;
   private contenido: Phaser.GameObjects.Container | null = null;
   private gestorFoco: GestorFoco | null = null;
@@ -43,9 +46,9 @@ export class ApagonScene extends Phaser.Scene {
     const fondoAtenuado = this.add
       .rectangle(
         cx,
-        cy,
+        (GAME_HEIGHT + HUD_H) / 2,
         GAME_WIDTH,
-        GAME_HEIGHT,
+        GAME_HEIGHT - HUD_H,
         COLORES.fondoLienzo,
         OVERLAY_METRICAS.fondoAlpha,
       )
@@ -79,6 +82,7 @@ export class ApagonScene extends Phaser.Scene {
 
     this.gestorFoco = crearGestorFoco(this, {
       items: [],
+      alCambiarFoco: indice => this.previewCosto(this.efectosPreview[indice] ?? null),
       padre: this.raiz,
       habilitado: () => Boolean(this.raiz?.visible),
     });
@@ -97,6 +101,7 @@ export class ApagonScene extends Phaser.Scene {
     this.desuscripciones.push(
       gameState.on('estado:cambio', (ev) => {
         if (ev.estado !== 'apagon') {
+          this.previewCosto(null);
           this.raiz?.setVisible(false);
           this.contenido?.removeAll(true);
           this.gestorFoco?.actualizarItems([]);
@@ -149,6 +154,7 @@ export class ApagonScene extends Phaser.Scene {
     const xInicio = cx - totalW / 2 + tarjetaW / 2;
     const yTarjetas = top + 286;
 
+    this.efectosPreview = opciones.map(opcion => opcion.efectos);
     const itemsFoco: ItemFoco[] = [];
     opciones.forEach((opcion, idx) => {
       const tx = xInicio + idx * (tarjetaW + sep);
@@ -161,6 +167,7 @@ export class ApagonScene extends Phaser.Scene {
         alto: tarjetaH,
         radio: ESPACIADO.radioPanel,
         activar: () => {
+          this.previewCosto(null);
           gameState.resolverApagon(opcion.id);
         },
       });
@@ -346,14 +353,16 @@ export class ApagonScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     contenedor.add(zona);
 
-    zona.on('pointerover', () => {
+    zona.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       dibujar(true);
+      if (!pointer.wasTouch) this.previewCosto(opcion.efectos);
       this.gestorFoco?.sincronizarIndice(indice, false);
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(1.02);
       }
     });
     zona.on('pointerout', () => {
+      this.previewCosto(null);
       dibujar(false);
       contenedor.setScale(1);
     });
@@ -361,13 +370,21 @@ export class ApagonScene extends Phaser.Scene {
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(0.98);
       }
+      this.previewCosto(null);
       gameState.resolverApagon(opcion.id);
     });
 
     return contenedor;
   }
 
+  private previewCosto(deltas: MapaDeltasRecursos | null): void {
+    this.game.events.emit(EVENTO_PREVIEW_COSTO, deltas === null ? null : {
+      aire: deltas.aire ?? 0, energia: deltas.energia ?? 0, escudo: deltas.escudo ?? 0,
+    });
+  }
+
   private limpiar(): void {
+    this.previewCosto(null);
     this.gestorFoco?.destroy();
     this.gestorFoco = null;
     for (const desuscribir of this.desuscripciones) {

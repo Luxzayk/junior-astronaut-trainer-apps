@@ -1,7 +1,9 @@
 // Escena overlay de elecciones por estación con chips de costo visible
 
 import Phaser from 'phaser';
-import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
+import { EVENTO_PREVIEW_COSTO } from '../ui/hudFx';
+import type { MapaDeltasRecursos } from '../game/missions';
+import { GAME_HEIGHT, GAME_WIDTH, HUD_H, SCENE_KEYS } from '../config';
 import type { OpcionEleccion, TipoEleccion } from '../game/jornadas';
 import {
   formatearSignoValor,
@@ -25,6 +27,7 @@ import {
 } from '../ui/theme';
 
 export class ChoiceScene extends Phaser.Scene {
+  private efectosPreview: readonly MapaDeltasRecursos[] = [];
   private raiz: Phaser.GameObjects.Container | null = null;
   private tituloTexto: Phaser.GameObjects.Text | null = null;
   private subtituloTexto: Phaser.GameObjects.Text | null = null;
@@ -49,9 +52,9 @@ export class ChoiceScene extends Phaser.Scene {
     const fondoAtenuado = this.add
       .rectangle(
         cx,
-        cy,
+        (GAME_HEIGHT + HUD_H) / 2,
         GAME_WIDTH,
-        GAME_HEIGHT,
+        GAME_HEIGHT - HUD_H,
         COLORES.fondoLienzo,
         OVERLAY_METRICAS.fondoAlpha,
       )
@@ -107,6 +110,7 @@ export class ChoiceScene extends Phaser.Scene {
 
     this.gestorFoco = crearGestorFoco(this, {
       items: [],
+      alCambiarFoco: indice => this.previewCosto(this.efectosPreview[indice] ?? null),
       padre: this.raiz,
       habilitado: () => Boolean(this.raiz?.visible),
     });
@@ -131,6 +135,7 @@ export class ChoiceScene extends Phaser.Scene {
     this.desuscripciones.push(
       gameState.on('estado:cambio', (ev) => {
         if (ev.estado !== 'eleccion') {
+          this.previewCosto(null);
           this.raiz?.setVisible(false);
           this.gestorFoco?.actualizarItems([]);
         }
@@ -175,6 +180,7 @@ export class ChoiceScene extends Phaser.Scene {
     const xInicio = GAME_WIDTH / 2 - totalW / 2 + ancho / 2;
     const yCentro = GAME_HEIGHT / 2 + 44;
 
+    this.efectosPreview = opciones.map(opcion => opcion.efectos);
     const itemsFoco: ItemFoco[] = [];
     opciones.forEach((opcion, indice) => {
       const tx = xInicio + indice * (ancho + sep);
@@ -187,6 +193,7 @@ export class ChoiceScene extends Phaser.Scene {
         alto: ELECCION_METRICAS.tarjetaAlto,
         radio: ESPACIADO.radioPanel,
         activar: () => {
+          this.previewCosto(null);
           gameState.aplicarEleccion(
             this.tipoEleccionActual,
             opcion.id,
@@ -355,14 +362,16 @@ export class ChoiceScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
     contenedor.add(zona);
 
-    zona.on('pointerover', () => {
+    zona.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       dibujar(true);
+      if (!pointer.wasTouch) this.previewCosto(opcion.efectos);
       this.gestorFoco?.sincronizarIndice(indice, false);
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(1.02);
       }
     });
     zona.on('pointerout', () => {
+      this.previewCosto(null);
       dibujar(false);
       contenedor.setScale(1);
     });
@@ -370,6 +379,7 @@ export class ChoiceScene extends Phaser.Scene {
       if (!getAjustes().movimientoReducido) {
         contenedor.setScale(0.98);
       }
+      this.previewCosto(null);
       gameState.aplicarEleccion(
         this.tipoEleccionActual,
         opcion.id,
@@ -380,7 +390,14 @@ export class ChoiceScene extends Phaser.Scene {
     return contenedor;
   }
 
+  private previewCosto(deltas: MapaDeltasRecursos | null): void {
+    this.game.events.emit(EVENTO_PREVIEW_COSTO, deltas === null ? null : {
+      aire: deltas.aire ?? 0, energia: deltas.energia ?? 0, escudo: deltas.escudo ?? 0,
+    });
+  }
+
   private limpiar(): void {
+    this.previewCosto(null);
     desregistrarObjetivoUI('eleccion');
     this.gestorFoco?.destroy();
     this.gestorFoco = null;

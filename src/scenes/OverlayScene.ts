@@ -1,6 +1,9 @@
 // Escena de superposiciones: pausa (con Ajustes/Glosario/Fuentes), fin de jornada (con chips de glosario), fin de demo y evacuación
 
 import Phaser from 'phaser';
+import { valorConteo, RECURSOS_HUD } from '../ui/hudFx';
+import { UI_CONFIG } from '../ui/uiConfig';
+import type { GastoRecursos } from '../game/closing';
 import { audioEngine } from '../audio/audio';
 import { GAME_HEIGHT, GAME_WIDTH, SCENE_KEYS } from '../config';
 import { MAX_JORNADAS } from '../game/balance';
@@ -48,7 +51,13 @@ import {
 } from '../ui/theme';
 import { debeMostrarInformeFinal } from './InformeScene';
 
+interface ConteoCierre {
+  gastoMostrado: Record<'aire' | 'energia' | 'escudo', number>; restanteMostrado: Record<'aire' | 'energia' | 'escudo', number>;
+  edadMs: number; gasto: Readonly<GastoRecursos>; restante: Readonly<GastoRecursos>;
+  textoGasto: Phaser.GameObjects.Text; textoRestante: Phaser.GameObjects.Text;
+}
 export class OverlayScene extends Phaser.Scene {
+  private conteoCierre: ConteoCierre | null = null;
   private raiz: Phaser.GameObjects.Container | null = null;
   private panel: Phaser.GameObjects.Graphics | null = null;
   private contenido: Phaser.GameObjects.Container | null = null;
@@ -113,12 +122,45 @@ export class OverlayScene extends Phaser.Scene {
       },
     });
 
+    const saltar = (): void => this.saltarConteo();
+    const saltarTecla = (evento: KeyboardEvent): void => {
+      if (evento.code === 'Enter' || evento.code === 'Space') this.saltarConteo();
+    };
+    this.input.on('pointerdown', saltar);
+    this.input.keyboard?.on('keydown', saltarTecla);
+    this.desuscripciones.push(() => { this.input.off('pointerdown', saltar); this.input.keyboard?.off('keydown', saltarTecla); });
     this.suscribirEventos();
     this.sincronizarConEstado(gameState.getSnapshot());
 
     this.events.once('shutdown', this.limpiar, this);
   }
 
+  public override update(_time: number, delta: number): void {
+    const c = this.conteoCierre;
+    if (!c || !this.raiz?.visible || c.edadMs >= UI_CONFIG.conteoMs) return;
+    const snap = gameState.getSnapshot();
+    if (snap.pausado || snap.estado === 'pausa' || this.modalGlosario?.estaAbierto() || this.esSubescenaPausaActiva() || tutorialManager.estaPausandoReloj()) return;
+    c.edadMs = getAjustes().movimientoReducido ? UI_CONFIG.conteoMs : Math.min(UI_CONFIG.conteoMs, c.edadMs + delta);
+    this.renderizarConteo();
+  }
+
+  private saltarConteo(): void {
+    if (!this.conteoCierre) return;
+    this.conteoCierre.edadMs = UI_CONFIG.conteoMs;
+    this.renderizarConteo();
+  }
+
+  private renderizarConteo(): void {
+    const c = this.conteoCierre;
+    if (!c) return;
+    const final = c.edadMs >= UI_CONFIG.conteoMs;
+    for (const recurso of RECURSOS_HUD) {
+      c.gastoMostrado[recurso] = final ? c.gasto[recurso] : Math.floor(valorConteo(c.edadMs, c.gasto[recurso], UI_CONFIG.conteoMs));
+      c.restanteMostrado[recurso] = final ? c.restante[recurso] : Math.floor(valorConteo(c.edadMs, c.restante[recurso], UI_CONFIG.conteoMs));
+    }
+    c.textoGasto.setText(t('overlays.gastoResumen', c.gastoMostrado));
+    c.textoRestante.setText(t('overlays.restanteResumen', c.restanteMostrado));
+  }
   private esSubescenaPausaActiva(): boolean {
     return (
       this.scene.isActive(SCENE_KEYS.ajustes) ||
@@ -203,7 +245,8 @@ export class OverlayScene extends Phaser.Scene {
       this.cierreMostradoParaClave = '';
       this.modalGlosario?.cerrar();
       this.raiz.setVisible(false);
-      this.contenido.removeAll(true);
+      this.conteoCierre = null;
+    this.contenido.removeAll(true);
       this.gestorFoco?.actualizarItems([]);
       return;
     }
@@ -212,7 +255,8 @@ export class OverlayScene extends Phaser.Scene {
       this.secuenciaCierre?.destroy();
       this.secuenciaCierre = null;
       this.raiz.setVisible(true);
-      this.contenido.removeAll(true);
+      this.conteoCierre = null;
+    this.contenido.removeAll(true);
       this.dibujarPanel(
         OVERLAY_METRICAS.panelAncho,
         512,
@@ -232,7 +276,8 @@ export class OverlayScene extends Phaser.Scene {
     if (puedeAnimar) {
       this.cierreMostradoParaClave = claveCierre;
       this.raiz.setVisible(false);
-      this.contenido.removeAll(true);
+      this.conteoCierre = null;
+    this.contenido.removeAll(true);
       this.gestorFoco?.actualizarItems([]);
       this.secuenciaCierre?.destroy();
 
@@ -277,6 +322,7 @@ export class OverlayScene extends Phaser.Scene {
     }
 
     this.raiz.setVisible(true);
+    this.conteoCierre = null;
     this.contenido.removeAll(true);
 
     if (snap.modo === 'demo') {
@@ -296,7 +342,7 @@ export class OverlayScene extends Phaser.Scene {
         Boolean(snap.ultimoCierre?.aguaBajaProxima);
       this.dibujarPanel(
         OVERLAY_METRICAS.finPanelAncho,
-        tieneLineaAgua ? 544 : 512,
+        tieneLineaAgua ? UI_CONFIG.cierre.altoAgua : UI_CONFIG.cierre.alto,
         esCompleta ? COLORES.ok : COLORES.aviso,
       );
       this.construirVistaFinJornada(snap);
@@ -630,7 +676,7 @@ export class OverlayScene extends Phaser.Scene {
     const cierre = snap.ultimoCierre;
     const tieneLineaAgua =
       Boolean(cierre?.aguaBajaAplicada) || Boolean(cierre?.aguaBajaProxima);
-    const panelAlto = tieneLineaAgua ? 544 : 512;
+    const panelAlto = tieneLineaAgua ? UI_CONFIG.cierre.altoAgua : UI_CONFIG.cierre.alto;
     const top = cy - panelAlto / 2;
     const esUltima = snap.jornada >= MAX_JORNADAS;
     const tipo = cierre?.tipo ?? 'completa';
@@ -686,7 +732,7 @@ export class OverlayScene extends Phaser.Scene {
     const textoGasto = this.add
       .text(
         cx,
-        top + 148,
+        top + UI_CONFIG.cierre.gastoY,
         t('overlays.gastoResumen', {
           aire: gasto.aire,
           energia: gasto.energia,
@@ -710,7 +756,7 @@ export class OverlayScene extends Phaser.Scene {
     const textoRestante = this.add
       .text(
         cx,
-        top + 184,
+        top + UI_CONFIG.cierre.restanteY,
         t('overlays.restanteResumen', {
           aire: restante.aire,
           energia: restante.energia,
@@ -726,10 +772,14 @@ export class OverlayScene extends Phaser.Scene {
       )
       .setOrigin(0.5);
 
-    const resumenIconos = this.crearResumenRecursos(cx, top + 230, snap);
+    textoGasto.setWordWrapWidth(OVERLAY_METRICAS.finPanelAncho - ESPACIADO.margen * 2, true);
+    textoRestante.setWordWrapWidth(OVERLAY_METRICAS.finPanelAncho - ESPACIADO.margen * 2, true);
+    this.conteoCierre = { gastoMostrado: { aire: 0, energia: 0, escudo: 0 }, restanteMostrado: { aire: 0, energia: 0, escudo: 0 }, edadMs: ajustes.movimientoReducido ? UI_CONFIG.conteoMs : 0, gasto, restante, textoGasto, textoRestante };
+    this.renderizarConteo();
+    const resumenIconos = this.crearResumenRecursos(cx, top + UI_CONFIG.cierre.iconosY, snap);
 
     const textoEfecto = this.add
-      .text(cx, top + 282, cierre?.mensajeEfecto ?? t('overlays.efectoCompleta'), {
+      .text(cx, top + UI_CONFIG.cierre.efectoY, cierre?.mensajeEfecto ?? t('overlays.efectoCompleta'), {
         fontFamily: FUENTE_FAMILIA,
         fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.subtitulo, textoGrande, 23)}px`,
         fontStyle: 'bold',
@@ -770,7 +820,7 @@ export class OverlayScene extends Phaser.Scene {
         ? t('overlays.efectoAguaBaja')
         : t('overlays.efectoAguaBajaProxima');
       const lineaAgua = this.add
-        .text(cx, top + 326, textoAgua, {
+        .text(cx, top + UI_CONFIG.cierre.aguaY, textoAgua, {
           fontFamily: FUENTE_FAMILIA,
           fontSize: `${escalarTamanoTexto(TAMANOS_TEXTO.minimo, textoGrande, 21)}px`,
           fontStyle: 'bold',
@@ -789,7 +839,7 @@ export class OverlayScene extends Phaser.Scene {
       : (): void => gameState.siguienteJornada();
 
     const itemsFoco: ItemFoco[] = [];
-    const chipsY = tieneLineaAgua ? top + 392 : top + 360;
+    const chipsY = tieneLineaAgua ? top + UI_CONFIG.cierre.chipsAguaY : top + UI_CONFIG.cierre.chipsY;
     const chipW = 300;
     const chipH = 56;
     const chipGap = 20;
@@ -1105,6 +1155,7 @@ export class OverlayScene extends Phaser.Scene {
   }
 
   private limpiar(): void {
+    this.conteoCierre = null;
     this.secuenciaCierre?.destroy();
     this.secuenciaCierre = null;
     this.modalGlosario?.destroy();
